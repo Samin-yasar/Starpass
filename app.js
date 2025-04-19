@@ -3,42 +3,77 @@ document.getElementById('length').addEventListener('input', (event) => {
     document.getElementById('length-value').textContent = event.target.value;
 });
 
-// Rark mode toggle
-let darkMode = false;
+// Dark mode toggle
+let darkMode = localStorage.getItem('darkMode') === 'true';
+if (darkMode) {
+    document.body.classList.add('bg-gray-800');
+    document.body.classList.remove('bg-gray-100');
+}
+
 const toggleDarkMode = () => {
     darkMode = !darkMode;
-    if (darkMode) {
-        document.body.classList.add('bg-gray-800');
-        document.body.classList.remove('bg-gray-100');
-    } else {
-        document.body.classList.add('bg-gray-100');
-        document.body.classList.remove('bg-gray-800');
-    }
+    localStorage.setItem('darkMode', darkMode);
+    document.body.classList.toggle('bg-gray-800', darkMode);
+    document.body.classList.toggle('bg-gray-100', !darkMode);
 };
 
-// Dynamic feedback for invalid input
+// Attach dark mode toggle to button
+document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
+
+// Display error messages non-intrusively
+function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    setTimeout(() => errorDiv.classList.add('hidden'), 3000);
+}
+
+// Input validation
 function validateInput(value, minValue) {
-    return value >= minValue;
+    return !isNaN(value) && value >= minValue;
 }
 
 function generatePassword() {
+    // Clear previous error
+    document.getElementById('error-message').classList.add('hidden');
+
     // Get input values
     const lowercaseCount = parseInt(document.getElementById('lowercase').value);
     const uppercaseCount = parseInt(document.getElementById('uppercase').value);
     const numbersCount = parseInt(document.getElementById('numbers').value);
     const specialCount = parseInt(document.getElementById('special').value);
     const excludeAmbiguous = document.getElementById('exclude-ambiguous').checked;
+    const passwordLength = parseInt(document.getElementById('length').value);
 
-    // Set up the possible characters
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
-    const special = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+    // Validate inputs
+    if (!validateInput(lowercaseCount, 0) || !validateInput(uppercaseCount, 0) ||
+        !validateInput(numbersCount, 0) || !validateInput(specialCount, 0)) {
+        showError('Please enter valid non-negative numbers.');
+        return;
+    }
 
-    // Remove ambiguous characters if the checkbox is checked
-    let specialChars = special;
+    // Validate total character count
+    const totalCount = lowercaseCount + uppercaseCount + numbersCount + specialCount;
+    if (totalCount > passwordLength) {
+        showError('Sum of character counts exceeds password length.');
+        return;
+    }
+    if (totalCount === 0) {
+        showError('Please select at least one character type.');
+        return;
+    }
+
+    // Set up possible characters
+    let lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    let uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let numbers = '0123456789';
+    let special = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+
+    // Remove ambiguous characters if checked
     if (excludeAmbiguous) {
-        specialChars = special.replace(/[(){}\[\]]/g, ''); // Exclude () [] {}
+        lowercase = lowercase.replace(/[l]/g, '');
+        uppercase = uppercase.replace(/[IO]/g, '');
+        special = special.replace(/[(){}\[\]]/g, '');
     }
 
     // Generate password
@@ -46,7 +81,13 @@ function generatePassword() {
     password += getRandomChars(lowercase, lowercaseCount);
     password += getRandomChars(uppercase, uppercaseCount);
     password += getRandomChars(numbers, numbersCount);
-    password += getRandomChars(specialChars, specialCount);
+    password += getRandomChars(special, specialCount);
+
+    // Fill remaining length with random characters
+    if (password.length < passwordLength) {
+        const remainingChars = lowercase + uppercase + numbers + special;
+        password += getRandomChars(remainingChars, passwordLength - password.length);
+    }
 
     // Shuffle the password
     password = shuffleString(password);
@@ -55,26 +96,34 @@ function generatePassword() {
     document.getElementById('password').innerText = password;
     document.getElementById('output').classList.remove('hidden');
 
-    // Optionally, calculate password strength and crack time
+    // Calculate strength and crack time
     calculateStrength(password);
-    estimateCrackTime(password);
+    estimateCrackTime(password, lowercase, uppercase, numbers, special);
 }
 
 function getRandomChars(charSet, count) {
-    let chars = '';
+    if (!charSet || count <= 0) return '';
+    const chars = [];
     for (let i = 0; i < count; i++) {
-        chars += charSet.charAt(Math.floor(Math.random() * charSet.length));
+        chars.push(charSet.charAt(Math.floor(Math.random() * charSet.length)));
     }
-    return chars;
+    return chars.join('');
 }
 
 function shuffleString(str) {
-    return str.split('').sort(() => Math.random() - 0.5).join('');
+    const arr = str.split('');
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.join('');
 }
 
 function copyPassword() {
     const password = document.getElementById('password').innerText;
-    navigator.clipboard.writeText(password);
+    navigator.clipboard.writeText(password)
+        .then(() => showError('Password copied to clipboard!'))
+        .catch(() => showError('Failed to copy password'));
 }
 
 function calculateStrength(password) {
@@ -87,6 +136,8 @@ function calculateStrength(password) {
     if (/[!@#$%^&*()\-_=+[\]{}|;:,.<>?]/.test(password)) strength += 1;
 
     const strengthBar = document.getElementById('strength-bar-fill');
+    strengthBar.setAttribute('aria-valuenow', strength * 20);
+
     switch (strength) {
         case 1:
         case 2:
@@ -111,8 +162,18 @@ function calculateStrength(password) {
     }
 }
 
-function estimateCrackTime(password) {
-    const complexity = Math.pow(94, password.length); // Assuming 94 printable characters
-    const crackTime = complexity / 1000000000000000000; // Rough estimate (simplified)
-    document.getElementById('crack-time').innerText = `Approximate time: ${crackTime.toFixed(2)} years`;
+function estimateCrackTime(password, lowercase, uppercase, numbers, special) {
+    // Calculate character pool size based on used character sets
+    let charPoolSize = 0;
+    if (/[a-z]/.test(password)) charPoolSize += lowercase.length;
+    if (/[A-Z]/.test(password)) charPoolSize += uppercase.length;
+    if (/[0-9]/.test(password)) charPoolSize += numbers.length;
+    if (/[!@#$%^&*()\-_=+[\]{}|;:,.<>?]/.test(password)) charPoolSize += special.length;
+
+    // Rough estimate: (charPoolSize^length) / (100 trillion guesses per second)
+    const complexity = Math.pow(charPoolSize, password.length);
+    const crackTimeSeconds = complexity / 100_000_000_000_000;
+    const crackTimeYears = crackTimeSeconds / (60 * 60 * 24 * 365);
+
+    document.getElementById('crack-time').innerText = `Approx. crack time: ${crackTimeYears.toFixed(2)} years`;
 }
