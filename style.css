@@ -1,1 +1,181 @@
+/* Global Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s ease;
+}
+
+/* Dark mode background color */
+.bg-gray-800 {
+    background-color: #2d3748;
+}
+
+/* Light mode background color */
+.bg-gray-100 {
+    background-color: #f7fafc;
+}
+
+/* Card Styles */
+.bg-white {
+    background-color: #ffffff;
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.rounded-lg {
+    border-radius: 10px;
+}
+
+/* Input Fields */
+input[type="number"], input[type="range"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.375rem;
+    transition: border-color 0.3s ease;
+}
+
+input[type="number"]:focus, input[type="range"]:focus {
+    border-color: #3182ce;
+    outline: none;
+}
+
+/* Button Styles */
+button {
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
+}
+
+/* Strength Bar */
+#strength-bar {
+    background-color: #e2e8f0;
+    height: 10px;
+    border-radius: 5px;
+}
+
+#strength-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* Password Output */
+#output {
+    margin-top: 2rem;
+}
+
+#password {
+    font-family: 'Courier New', monospace;
+    font-size: 1.25rem;
+    word-break: break-word;
+}
+
+#crack-time {
+    font-size: 1.125rem;
+}
+
+/* Error Message */
+#error {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    color: #f56565;
+    text-align: center;
+}
+
+/* Accessibility Focus Styles */
+input:focus, button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+/* Utility Classes */
+.text-center {
+    text-align: center;
+}
+
+.text-gray-700 {
+    color: #4a5568;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.font-mono {
+    font-family: 'Courier New', monospace;
+}
+
+.bg-blue-600 {
+    background-color: #3182ce;
+}
+
+.bg-blue-700 {
+    background-color: #2b6cb0;
+}
+
+.bg-gray-600 {
+    background-color: #718096;
+}
+
+.bg-gray-700 {
+    background-color: #4a5568;
+}
+
+.bg-gray-200 {
+    background-color: #edf2f7;
+}
+
+.hover\:bg-blue-700:hover {
+    background-color: #2b6cb0;
+}
+
+.hover\:bg-gray-700:hover {
+    background-color: #4a5568;
+}
+
+.hover\:opacity-80:hover {
+    opacity: 0.8;
+}
+
+.rounded-md {
+    border-radius: 0.375rem;
+}
+
+/* Focus styles */
+input:focus, button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+/* Transitions for interactive elements */
+input, button {
+    transition: all 0.3s ease;
+}
 
