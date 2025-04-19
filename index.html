@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strong Password Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+        <h1 class="text-2xl font-bold text-center mb-4">Strong Password Generator</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <label for="lowercase" class="block text-sm font-medium text-gray-700">Lowercase Letters</label>
+                <input type="number" id="lowercase" value="4" min="0" class="w-full p-2 border rounded-md" placeholder="e.g., 4">
+            </div>
+            <div>
+                <label for="uppercase" class="block text-sm font-medium text-gray-700">Uppercase Letters</label>
+                <input type="number" id="uppercase" value="4" min="0" class="w-full p-2 border rounded-md" placeholder="e.g., 4">
+            </div>
+            <div>
+                <label for="numbers" class="block text-sm font-medium text-gray-700">Numbers</label>
+                <input type="number" id="numbers" value="4" min="0" class="w-full p-2 border rounded-md" placeholder="e.g., 4">
+            </div>
+            <div>
+                <label for="special" class="block text-sm font-medium text-gray-700">Special Characters</label>
+                <input type="number" id="special" value="4" min="0" class="w-full p-2 border rounded-md" placeholder="e.g., 4">
+            </div>
+            <button onclick="generatePassword()" class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">Generate Password</button>
+        </div>
+        
+        <div id="error" class="text-red-500 text-sm mt-2 text-center"></div>
+        
+        <div id="output" class="mt-6 hidden">
+            <h3 class="text-lg font-semibold">Generated Password:</h3>
+            <p class="text-center font-mono bg-gray-100 p-2 rounded-md break-all"><strong id="password"></strong></p>
+            <button onclick="copyPassword()" class="w-full bg-gray-600 text-white p-2 rounded-md mt-2 hover:bg-gray-700">Copy to Clipboard</button>
+            <h3 class="text-lg font-semibold mt-4">Estimated Time to Crack:</h3>
+            <p id="crack-time" class="text-center"></p>
+            <h3 class="text-lg font-semibold mt-4">Password Strength:</h3>
+            <div classAXIS
+                id="strength-bar"
+                class="w-full bg-gray-200 rounded-md h-2.5"
+            >
+                <div id="strength-bar-fill" class="h-full rounded-md"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
