@@ -28,14 +28,11 @@
                 <label for="special" class="block text-sm font-medium text-gray-700">Special Characters</label>
                 <input type="number" id="special" value="4" min="0" class="w-full p-2 border rounded-md" placeholder="e.g., 4">
             </div>
-
-            <!-- Password Length Slider -->
-            <div>
-                <label for="length" class="block text-sm font-medium text-gray-700">Password Length</label>
-                <input type="range" id="length" value="16" min="8" max="50" step="1" class="w-full p-2 border rounded-md">
-                <span id="length-value" class="block text-center">16</span>
+            <div class="flex items-center">
+                <input type="checkbox" id="exclude-ambiguous" class="mr-2">
+                <label for="exclude-ambiguous" class="text-sm text-gray-700">Exclude ambiguous characters (e.g., () [] {})</label>
             </div>
-            
+
             <button onclick="generatePassword()" class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">Generate Password</button>
         </div>
         
