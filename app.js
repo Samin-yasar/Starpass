@@ -127,6 +127,15 @@ const StarpassApp = (() => {
   /**
    * Estimates localStorage usage as a percentage of quota
    * Caches the result and updates it when localStorage changes.
+   * */
+
+  /**
+ * Estimates localStorage usage as a percentage of quota
+ * Caches the result and updates it when localStorage changes.
+ * @returns {number} Percentage of storage quota used
+ */
+  let cachedQuota = null;
+
   function getStorageQuota() {
     if (cachedQuota !== null) {
       return cachedQuota;
@@ -150,11 +159,6 @@ const StarpassApp = (() => {
       return 0;
     }
   }
-    } catch {
-      return 0;
-    }
-  }
-
   // Listen for storage changes to invalidate the cache
   window.addEventListener("storage", () => {
     cachedQuota = null;
