@@ -1,0 +1,516 @@
+/* Starpass Generator Stylesheet */
+/* Root Variables */
+:root {
+  --color-bg: #e6f0ff;
+  --color-bg-secondary: #6ba3e9;
+  --color-text: #1e293b;
+  --color-text-light: #9da1a8;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #3b82f6;
+  --color-accent: #4f46e5;
+  --color-success: #2dd4bf;
+  --color-error: #ef4444;
+  --color-border: #79b1f0;
+  --color-shadow: rgba(31, 41, 55, 0.1);
+  --color-shadow-lg: rgba(31, 41, 55, 0.16);
+  --color-blue-accent: #166cd6;
+  --font-sans: 'Arial', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Courier New', monospace;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+  --elevation-1: 0 1px 3px var(--color-shadow);
+  --elevation-2: 0 4px 6px var(--color-shadow);
+  --elevation-3: 0 10px 15px var(--color-shadow-lg);
+  --font-size-sm: 0.875rem;
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+/* Dark Mode */
+.dark-mode {
+  --color-bg: #1e293b;
+  --color-bg-secondary: #334155;
+  --color-text: #f1f5f9;
+  --color-text-light: #94a3b8;
+  --color-border: #475569;
+  --color-shadow: rgba(0, 0, 0, 0.2);
+  --color-shadow-lg: rgba(0, 0, 0, 0.3);
+}
+
+/* High Contrast Mode */
+.high-contrast {
+  --color-bg: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-text: #ffffff;
+  --color-text-light: #bfdbfe;
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-primary-light: #60a5fa;
+  --color-success: #22d3ee;
+  --color-error: #f87171;
+  --color-border: #ffffff;
+  --color-shadow: none;
+  --color-shadow-lg: none;
+}
+
+/* Global Reset */
+html {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  min-height: 100%;
+  padding: var(--spacing-md);
+}
+
+/* Accessibility: Skip Link */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: var(--spacing-md);
+  background: var(--color-primary);
+  color: #fff;
+  padding: var(--spacing-sm) var(--spacing-md);
+  z-index: 1000;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: var(--spacing-sm);
+}
+
+/* Layout: Container */
+.container {
+  max-width: 48rem;
+  margin: var(--spacing-lg) auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Headings */
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: var(--spacing-md) 0 var(--spacing-sm);
+}
+
+/* Components: Tabs */
+.tab-button {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--color-text-light);
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tab-button.active,
+.tab-button:hover {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+}
+
+.tab-button:focus {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Components: Forms */
+label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xs);
+}
+
+input[type="number"],
+input[type="range"],
+input[type="text"],
+select {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+input[type="number"]:focus,
+input[type="range"]:focus,
+input[type="text"]:focus,
+select:focus {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 1px;
+}
+
+/* Placeholder Styles */
+input[type="text"]::placeholder {
+  font-size: 1rem;
+  color: var(--color-primary);
+  opacity: 0.7;
+}
+
+/* Real-Time Validation Feedback */
+input[data-invalid="true"] {
+  border-color: var(--color-error);
+  background-color: #fef2f2;
+}
+
+input[type="checkbox"] {
+  margin-right: var(--spacing-xs);
+}
+
+input[type="range"]+span {
+  font-size: var(--font-size-sm);
+  margin-left: var(--spacing-sm);
+}
+
+/* Components: Buttons */
+.btn {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.btn:focus {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  background-color: var(--color-text-light);
+  cursor: not-allowed;
+}
+
+/* Components: Output Section */
+#output {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-1);
+}
+
+#result {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  padding: var(--spacing-sm);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  word-break: break-all;
+}
+
+/* Strength Bar */
+#strength-bar {
+  height: 0.5rem;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: var(--spacing-sm) 0;
+}
+
+#strength-bar-fill {
+  height: 100%;
+  transition: width var(--transition-normal);
+}
+
+.strength-very-weak {
+  background-color: var(--color-error);
+}
+
+.strength-weak {
+  background-color: #f97316;
+}
+
+.strength-medium {
+  background-color: #eab308;
+}
+
+.strength-strong {
+  background-color: var(--color-success);
+}
+
+.strength-very-strong {
+  background-color: #059669;
+}
+
+/* Components: Error/Success Messages */
+.error,
+.success {
+  padding: var(--spacing-sm);
+  margin: var(--spacing-md) 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  transition: opacity var(--transition-normal);
+}
+
+.error {
+  background-color: #fef2f2;
+  color: var(--color-error);
+  border-left: 4px solid var(--color-error);
+}
+
+.success {
+  background-color: #e0f7fa;
+  color: var(--color-success);
+  border-left: 4px solid var(--color-success);
+}
+
+/* Components: History Section */
+#history-section {
+  margin-top: var(--spacing-lg);
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm);
+  margin: var(--spacing-sm) 0;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--elevation-1);
+}
+
+.history-badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: var(--spacing-sm);
+}
+
+.badge-password {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.badge-passphrase {
+  background-color: var(--color-accent);
+  color: #fff;
+}
+
+.badge-username {
+  background-color: var(--color-success);
+  color: #fff;
+}
+
+.history-value {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.history-toggle,
+.history-action {
+  background: none;
+  border: none;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  margin-left: var(--spacing-sm);
+  color: var(--color-text-light);
+  transition: color var(--transition-fast);
+}
+
+.history-toggle:hover,
+.history-action:hover,
+.history-toggle:focus,
+.history-action:focus {
+  color: var(--color-primary);
+}
+
+.history-toggle:focus,
+.history-action:focus {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 1px;
+}
+
+/* Components: Undo Message */
+.undo-message {
+  position: fixed;
+  bottom: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-2);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.undo-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.undo-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+.undo-btn:focus {
+  outline: 2px solid var(--color-primary-light);
+}
+
+/* Components: Accessibility Panel */
+.accessibility-panel {
+  margin: var(--spacing-md) 0;
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.accessibility-panel button {
+  background: var(--color-blue-accent);
+  color: #fff;
+  padding: var(--spacing-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.accessibility-panel button:hover {
+  background: var(--color-primary);
+}
+
+.accessibility-panel button:focus {
+  outline: 2px solid var(--color-primary-light);
+}
+
+/* Style for the Save to History button superscript */
+#save-button sup {
+  color: var(--color-error);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  vertical-align: super;
+  margin-left: var(--spacing-xs);
+  transition: color var(--transition-fast);
+}
+
+/* Ensure disabled button styling is consistent */
+#save-button:disabled {
+  background-color: var(--color-text-light);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Dark mode adjustments */
+.dark-mode #save-button sup {
+  color: var(--color-error);
+}
+
+/* High contrast mode adjustments */
+.high-contrast #save-button sup {
+  color: var(--color-error);
+}
+
+/* Utilities */
+.hidden {
+  display: none;
+}
+
+.flex {
+  display: flex;
+}
+
+.space-y-4> :not(:last-child) {
+  margin-bottom: var(--spacing-md);
+}
+
+.space-x-2> :not(:last-child) {
+  margin-right: var(--spacing-sm);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+
+  .btn,
+  .tab-button,
+  .history-toggle,
+  .history-action,
+  .undo-btn,
+  .error,
+  .success {
+    transition: none;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+}
