@@ -46,7 +46,6 @@ class LRUCache {
   }
 }
 
-
 /**
  * Main application module for the password generator
  */
@@ -85,7 +84,6 @@ const StarpassApp = (() => {
    * @param {boolean} isSuccess - Whether to display as success instead of error
    */
   function logError(error, message, isSuccess = false) {
-    // Only log error type and timestamp, no sensitive data
     try {
       const errorLog = JSON.parse(localStorage.getItem("errorLog") || "[]");
       errorLog.push({
@@ -95,12 +93,10 @@ const StarpassApp = (() => {
         userAgent: navigator.userAgent.substring(0, 50) // Truncated for privacy
       });
 
-      // Keep error log size reasonable (max 25 entries)
       if (errorLog.length > 25) {
         errorLog.splice(0, errorLog.length - 25);
       }
 
-      // Check localStorage quota before writing
       if (getStorageQuota() > 0.9) {
         console.warn("localStorage quota nearly exceeded, clearing error log");
         localStorage.removeItem("errorLog");
@@ -111,11 +107,10 @@ const StarpassApp = (() => {
       console.error("Failed to log error:", e.name);
     }
 
-    // Show user-friendly error message
     displayMessage(
       {
         QuotaExceededError: "Storage limit exceeded. Please clear history or reduce entries.",
-        TypeError: "Invalid input type. Please check your inputs.",
+        TypeError: "Invalid input type. Please check curieux inputs.",
         SyntaxError: "Invalid data format. Please try again.",
         NetworkError: "Network error. Please check your connection.",
         SecurityError: "Security error. Please refresh the page."
@@ -126,14 +121,8 @@ const StarpassApp = (() => {
 
   /**
    * Estimates localStorage usage as a percentage of quota
-   * Caches the result and updates it when localStorage changes.
-   * */
-
-  /**
- * Estimates localStorage usage as a percentage of quota
- * Caches the result and updates it when localStorage changes.
- * @returns {number} Percentage of storage quota used
- */
+   * @returns {number} Percentage of storage quota used
+   */
   let cachedQuota = null;
 
   function getStorageQuota() {
@@ -159,7 +148,7 @@ const StarpassApp = (() => {
       return 0;
     }
   }
-  // Listen for storage changes to invalidate the cache
+
   window.addEventListener("storage", () => {
     cachedQuota = null;
   });
@@ -182,7 +171,6 @@ const StarpassApp = (() => {
       input = String(input);
     }
 
-    // More comprehensive sanitization
     return input
       .trim()
       .replace(/[<>\"'&]/g, '') // Remove HTML/script injection chars
@@ -206,7 +194,6 @@ const StarpassApp = (() => {
     const isRangeValid = !isNaN(value) && value >= min && value <= max;
     let isTotalValid = true;
 
-    // Check total length only for password character inputs
     if (['lowercase', 'uppercase', 'numbers', 'special'].includes(element.id)) {
       isTotalValid = validateTotalLength();
     } else if (element.id === 'password-length') {
@@ -279,19 +266,14 @@ const StarpassApp = (() => {
   function getSecureRandom(max) {
     if (max <= 0) return 0;
 
-    // Check if crypto and getRandomValues are available
     if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
-      // Calculate a threshold to ensure unbiased random numbers
       const threshold = Math.floor(0xFFFFFFFF / max) * max;
-
-      // Generate random values until we get one below the threshold
       let randomValue;
       do {
         const randomBuffer = new Uint32Array(1);
         crypto.getRandomValues(randomBuffer);
         randomValue = randomBuffer[0];
       } while (randomValue >= threshold);
-
       return randomValue % max;
     } else {
       console.warn("crypto.getRandomValues is not available. Falling back to Math.random.");
@@ -304,18 +286,15 @@ const StarpassApp = (() => {
    * @returns {Promise<boolean>} Whether words were successfully loaded
    */
   async function loadWordList() {
-    // Return existing word list if available
     if (wordList.length > 0) {
       return true;
     }
 
-    // Check storage quota before caching
     if (getStorageQuota() > 0.8) {
       console.warn("localStorage quota high, skipping word list cache");
       return await fetchWordListFromServer();
     }
 
-    // Try to load from localStorage cache first
     const cachedWords = localStorage.getItem("commonWords");
     const cachedVersion = localStorage.getItem("commonWordsVersion");
 
@@ -362,15 +341,12 @@ const StarpassApp = (() => {
     } catch (error) {
       logError(error, "Failed to load word list. Please try again.");
       displayMessage("Network error: Using fallback word list.", false);
-
-      // Fallback word list
       wordList = [
         "apple", "banana", "cherry", "dragon", "elephant", "forest", "guitar",
         "house", "island", "jungle", "kitten", "lemon", "mountain", "ocean",
         "piano", "quiet", "river", "sunset", "tiger", "umbrella", "violet",
         "window", "yellow", "zebra"
       ];
-
       return true;
     }
   }
@@ -403,7 +379,6 @@ const StarpassApp = (() => {
   function displayMessage(message, isSuccess = false) {
     const errorElement = getElementById("error");
     if (!errorElement) {
-      // Fallback: create temporary message element
       const tempMessage = document.createElement('div');
       tempMessage.textContent = message;
       tempMessage.style.cssText = `
@@ -418,7 +393,6 @@ const StarpassApp = (() => {
       return;
     }
 
-    // Set message content and styling
     errorElement.textContent = message;
     errorElement.style.opacity = "1";
     errorElement.style.padding = "var(--spacing-sm, 8px)";
@@ -428,7 +402,6 @@ const StarpassApp = (() => {
     errorElement.setAttribute("role", "alert");
     errorElement.setAttribute("aria-live", "polite");
 
-    // Auto-hide after 3 seconds
     setTimeout(() => {
       errorElement.textContent = "";
       errorElement.style.opacity = "0";
@@ -458,7 +431,7 @@ const StarpassApp = (() => {
    */
   function generateRandomChars(charSet, count) {
     if (!charSet || count <= 0) return "";
-    if (charSet.length === 0) return ""; // Handle empty charSet case
+    if (charSet.length === 0) return "";
 
     const result = [];
     for (let i = 0; i < count; i++) {
@@ -469,11 +442,10 @@ const StarpassApp = (() => {
     return result.join("");
   }
 
-
   /**
-  * Sets the result in the UI
-  * @param {string} result - The generated password/passphrase/username
-  */
+   * Sets the result in the UI
+   * @param {string} result - The generated password/passphrase/username
+   */
   function setResult(result) {
     const resultElement = getElementById("result");
     const outputElement = getElementById("output");
@@ -485,7 +457,6 @@ const StarpassApp = (() => {
       resultElement.setAttribute("aria-live", "polite");
       outputElement.classList.remove("hidden");
 
-      // Hide strength analysis for usernames, show for passwords/passphrases
       const isUsername = currentResult.type === "username";
       if (strengthBarElement) {
         strengthBarElement.style.display = isUsername ? "none" : "block";
@@ -493,11 +464,10 @@ const StarpassApp = (() => {
       if (crackTimeElement) {
         crackTimeElement.style.display = isUsername ? "none" : "block";
         if (isUsername) {
-          crackTimeElement.textContent = ""; // Clear text to avoid stale data
+          crackTimeElement.textContent = "";
         }
       }
 
-      // Announce to screen readers
       setTimeout(() => {
         resultElement.setAttribute("aria-live", "off");
       }, 100);
@@ -511,13 +481,11 @@ const StarpassApp = (() => {
    */
   async function copyToClipboard(text) {
     try {
-      // Modern clipboard API (preferred)
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
         return true;
       }
 
-      // Secure fallback using Selection API
       if (window.getSelection) {
         const textArea = document.createElement('textarea');
         textArea.value = text;
@@ -557,7 +525,6 @@ const StarpassApp = (() => {
     }
 
     try {
-      // Check if history.js is available
       if (typeof window.HistoryManager !== 'undefined') {
         await window.HistoryManager.addEntry({
           value: currentResult.value,
@@ -567,7 +534,6 @@ const StarpassApp = (() => {
         });
         displayMessage("Saved to history!", true);
       } else {
-        // Fallback: simple localStorage save
         const history = JSON.parse(localStorage.getItem('starpass_history') || '[]');
         history.unshift({
           value: currentResult.value,
@@ -575,7 +541,6 @@ const StarpassApp = (() => {
           timestamp: new Date().toISOString()
         });
 
-        // Keep only last 50 entries
         if (history.length > 50) {
           history.splice(50);
         }
@@ -589,17 +554,10 @@ const StarpassApp = (() => {
   }
 
   /**
-   * Calculates and displays password strength
+   * Calculates password strength with enhanced granularity
    * @param {string} password - The password to analyze
    */
   async function calculateStrength(password) {
-    // Check cache first
-    const cachedStrength = strengthCache.get(password);
-    if (cachedStrength) {
-      displayStrength(cachedStrength);
-      return;
-    }
-
     const strengthBarElement = getElementById("strength-bar-fill");
     const crackTimeElement = getElementById("crack-time");
 
@@ -608,7 +566,14 @@ const StarpassApp = (() => {
       return;
     }
 
-    // Clear any existing strength classes
+    // Check cache first
+    const cachedStrength = strengthCache.get(password);
+    if (cachedStrength) {
+      displayStrength(cachedStrength);
+      return;
+    }
+
+    // Clear existing strength classes
     strengthBarElement.classList.remove(
       "strength-very-weak",
       "strength-weak",
@@ -617,7 +582,6 @@ const StarpassApp = (() => {
       "strength-very-strong"
     );
 
-    // Load zxcvbn library if not already loaded
     if (!zxcvbnLoaded) {
       try {
         await loadZxcvbn();
@@ -628,38 +592,35 @@ const StarpassApp = (() => {
       }
     }
 
-    // Calculate strength using zxcvbn
     try {
       const result = zxcvbn(password);
-      const score = result.score;
+      const score = result.score; // 0-4 scale
+      const entropy = result.guesses_log10; // Log10 of guesses
       const crackTimeSeconds = result.crack_times_seconds.offline_fast_hashing_1e10_per_second;
 
-      // Format crack time for display
+      // Normalize score to 0-100 based on entropy and crack time
+      const normalizedScore = Math.min(100, Math.max(0, Math.round(
+        (score / 4) * 50 + // Base score contributes 50%
+        (Math.min(entropy, 20) / 20) * 30 + // Entropy contributes 30%
+        (Math.log10(Math.max(crackTimeSeconds, 1)) / 12) * 20 // Crack time contributes 20%
+      )));
+
       const crackTimeText = formatCrackTime(crackTimeSeconds);
+      const label = normalizedScore < 20 ? "Very Weak" :
+                    normalizedScore < 40 ? "Weak" :
+                    normalizedScore < 60 ? "Medium" :
+                    normalizedScore < 80 ? "Strong" : "Very Strong";
 
-      // Strength levels
-      const strengthLevels = [
-        { class: "strength-very-weak", percentage: 25, label: "Very Weak" },
-        { class: "strength-weak", percentage: 40, label: "Weak" },
-        { class: "strength-medium", percentage: 60, label: "Medium" },
-        { class: "strength-strong", percentage: 80, label: "Strong" },
-        { class: "strength-very-strong", percentage: 100, label: "Very Strong" }
-      ];
+      const strengthInfo = {
+        score: normalizedScore,
+        label: label,
+        crackTimeText: crackTimeText,
+        entropy: entropy.toFixed(2),
+        suggestions: result.feedback.suggestions
+      };
 
-      const strengthInfo = strengthLevels[score] || strengthLevels[0];
-
-      // Store in cache
-      strengthCache.set(password, {
-        ...strengthInfo,
-        score: score,
-        crackTimeText: crackTimeText
-      });
-
-      // Display the result
-      displayStrength({
-        ...strengthInfo,
-        crackTimeText: crackTimeText
-      });
+      strengthCache.set(password, strengthInfo);
+      displayStrength(strengthInfo);
     } catch (error) {
       logError(error, "Failed to calculate strength.");
       calculateBasicStrength(password);
@@ -708,7 +669,6 @@ const StarpassApp = (() => {
         });
       };
 
-      // Try local file first
       loadScript("src/zxcvbn.min.js")
         .then(() => {
           zxcvbnLoaded = true;
@@ -717,7 +677,6 @@ const StarpassApp = (() => {
         })
         .catch((localError) => {
           console.warn("Local zxcvbn load failed:", localError.message);
-          // Try jsDelivr CDN
           loadScript("https://cdn.jsdelivr.net/npm/zxcvbn@4.4.2/dist/zxcvbn.min.js")
             .then(() => {
               zxcvbnLoaded = true;
@@ -752,19 +711,25 @@ const StarpassApp = (() => {
   }
 
   /**
-   * Displays password strength in the UI
+   * Displays password strength in the UI with dynamic gradient
    * @param {Object} strengthInfo - Strength information
    */
-  function displayStrength({ class: className, percentage, label, crackTimeText }) {
+  function displayStrength({ score, label, crackTimeText, entropy, suggestions }) {
     const strengthBarElement = getElementById("strength-bar-fill");
     const crackTimeElement = getElementById("crack-time");
 
     if (strengthBarElement && crackTimeElement) {
-      strengthBarElement.classList.add(className);
-      strengthBarElement.style.width = `${percentage}%`;
-      strengthBarElement.setAttribute("aria-valuenow", percentage);
-      strengthBarElement.setAttribute("aria-valuetext", label);
-      crackTimeElement.textContent = `Password Strength: ${label} (${crackTimeText})`;
+      // Apply gradient based on score
+      const hue = Math.min(120, score * 1.2); // Red (0) to Green (120)
+      strengthBarElement.style.background = `hsl(${hue}, 70%, 50%)`;
+      strengthBarElement.style.width = `${score}%`;
+      strengthBarElement.setAttribute("aria-valuenow", score);
+      strengthBarElement.setAttribute("aria-valuetext", `${label} (Score: ${score}/100)`);
+      crackTimeElement.textContent = `Strength: ${label} (Crack time: ${crackTimeText}, Entropy: ${entropy} bits)`;
+
+      // Add tooltip with detailed info
+      strengthBarElement.setAttribute("title", 
+        `Strength: ${label}\nScore: ${score}/100\nCrack time: ${crackTimeText}\nEntropy: ${entropy} bits\nSuggestions: ${suggestions.join(" ") || "None"}`);
     }
   }
 
@@ -780,33 +745,27 @@ const StarpassApp = (() => {
     const hasSpecial = /[^a-zA-Z0-9]/.test(password);
 
     let score = 0;
-    if (length >= 12) score++;
-    if (length >= 16) score++;
-    if (hasLower && hasUpper) score++;
-    if (hasNumber) score++;
-    if (hasSpecial) score++;
+    if (length >= 12) score += 20;
+    if (length >= 16) score += 20;
+    if (hasLower && hasUpper) score += 20;
+    if (hasNumber) score += 20;
+    if (hasSpecial) score += 20;
 
-    const strengthLevels = [
-      { class: "strength-very-weak", percentage: 25, label: "Very Weak" },
-      { class: "strength-weak", percentage: 40, label: "Weak" },
-      { class: "strength-medium", percentage: 60, label: "Medium" },
-      { class: "strength-strong", percentage: 80, label: "Strong" },
-      { class: "strength-very-strong", percentage: 100, label: "Very Strong" }
-    ];
+    const label = score < 20 ? "Very Weak" :
+                  score < 40 ? "Weak" :
+                  score < 60 ? "Medium" :
+                  score < 80 ? "Strong" : "Very Strong";
 
-    const strengthInfo = strengthLevels[score] || strengthLevels[0];
-    const crackTimeText = "Estimation unavailable";
-
-    strengthCache.set(password, {
-      ...strengthInfo,
+    const strengthInfo = {
       score: score,
-      crackTimeText: crackTimeText
-    });
+      label: label,
+      crackTimeText: "Estimation unavailable",
+      entropy: "Unknown",
+      suggestions: []
+    };
 
-    displayStrength({
-      ...strengthInfo,
-      crackTimeText: crackTimeText
-    });
+    strengthCache.set(password, strengthInfo);
+    displayStrength(strengthInfo);
   }
 
   /**
@@ -824,7 +783,7 @@ const StarpassApp = (() => {
   }
 
   /**
-   * Sets up input validation for numeric fields with debounced validation
+   * Sets up input validation and real-time strength preview
    */
   function setupInputValidation() {
     const fields = [
@@ -843,15 +802,27 @@ const StarpassApp = (() => {
       if (element) {
         element.addEventListener(
           "input",
-          debounce(() => validateNumericInput(element, min, max), 300)
+          debounce(() => {
+            validateNumericInput(element, min, max);
+            if (['password-length', 'lowercase', 'uppercase', 'numbers', 'special', 'word-count'].includes(id)) {
+              previewStrength();
+            }
+          }, 300)
         );
-        // Validate on initial load
         validateNumericInput(element, min, max);
       }
     });
 
+    // Add real-time preview for checkboxes
+    ['exclude-ambiguous', 'capitalize-words', 'include-number', 'include-special'].forEach(id => {
+      const element = getElementById(id);
+      if (element) {
+        element.addEventListener("change", debounce(previewStrength, 300));
+      }
+    });
+
     /**
-     * Creates a debounced function (shared utility)
+     * Creates a debounced function
      * @param {Function} func - Function to debounce
      * @param {number} wait - Wait time in ms
      * @returns {Function} Debounced function
@@ -865,6 +836,110 @@ const StarpassApp = (() => {
     }
   }
 
+  /**
+   * Previews strength based on current settings
+   */
+  async function previewStrength() {
+    const activeTab = document.querySelector('.tab-content.active').id;
+    let previewText = "";
+
+    if (activeTab === "password") {
+      const elements = {
+        lowercase: getElementById("lowercase"),
+        uppercase: getElementById("uppercase"),
+        numbers: getElementById("numbers"),
+        special: getElementById("special"),
+        length: getElementById("password-length"),
+        excludeAmbiguous: getElementById("exclude-ambiguous")
+      };
+
+      const settings = {
+        lowercase: parseInt(sanitizeInput(elements.lowercase?.value)) || 0,
+        uppercase: parseInt(sanitizeInput(elements.uppercase?.value)) || 0,
+        numbers: parseInt(sanitizeInput(elements.numbers?.value)) || 0,
+        special: parseInt(sanitizeInput(elements.special?.value)) || 0,
+        length: parseInt(sanitizeInput(elements.length?.value)) || 16,
+        excludeAmbiguous: elements.excludeAmbiguous?.checked || false
+      };
+
+      if (settings.lowercase + settings.uppercase + settings.numbers + settings.special === 0) {
+        displayStrength({ score: 0, label: "Very Weak", crackTimeText: "0 seconds", entropy: "0", suggestions: [] });
+        return;
+      }
+
+      let charSets = { ...CHARACTER_SETS };
+      if (settings.excludeAmbiguous) {
+        charSets.lowercase = charSets.lowercase.replace(/[l]/g, "");
+        charSets.uppercase = charSets.uppercase.replace(/[IO]/g, "");
+        charSets.numbers = charSets.numbers.replace(/[01]/g, "");
+        charSets.special = charSets.special.replace(/[(){}\[\]]/g, "");
+      }
+
+      previewText += generateRandomChars(charSets.lowercase, settings.lowercase);
+      previewText += generateRandomChars(charSets.uppercase, settings.uppercase);
+      previewText += generateRandomChars(charSets.numbers, settings.numbers);
+      previewText += generateRandomChars(charSets.special, settings.special);
+
+      if (previewText.length < settings.length) {
+        let remainingChars = "";
+        if (settings.lowercase > 0) remainingChars += charSets.lowercase;
+        if (settings.uppercase > 0) remainingChars += charSets.uppercase;
+        if (settings.numbers > 0) remainingChars += charSets.numbers;
+        if (settings.special > 0) remainingChars += charSets.special;
+        previewText += generateRandomChars(remainingChars, settings.length - previewText.length);
+      }
+
+      previewText = shuffleString(previewText);
+    } else if (activeTab === "passphrase") {
+      if (!await loadWordList()) return;
+
+      const elements = {
+        wordCount: getElementById("word-count"),
+        separator: getElementById("separator"),
+        capitalizeWords: getElementById("capitalize-words"),
+        includeNumber: getElementById("include-number"),
+        includeSpecial: getElementById("include-special")
+      };
+
+      const wordCount = parseInt(sanitizeInput(elements.wordCount?.value)) || 4;
+      const separatorMap = {
+        'hyphen': '-',
+        'dot': '.',
+        'underscore': '_',
+        'space': ' ',
+        'none': ''
+      };
+      const separator = separatorMap[elements.separator?.value] || '-';
+      const capitalizeWords = elements.capitalizeWords?.checked || false;
+      const includeNumber = elements.includeNumber?.checked || false;
+      const includeSpecial = elements.includeSpecial?.checked || false;
+
+      let words = [];
+      for (let i = 0; i < wordCount; i++) {
+        const randomIndex = getSecureRandom(wordList.length);
+        let word = wordList[randomIndex];
+        if (capitalizeWords) {
+          word = word.charAt(0).toUpperCase() + word.slice(1);
+        }
+        words.push(word);
+      }
+
+      previewText = words.join(separator);
+      if (includeNumber) {
+        previewText += getSecureRandom(1000);
+      }
+      if (includeSpecial) {
+        const specialChars = "!@#$%^&*()-_=+";
+        const randomIndex = getSecureRandom(specialChars.length);
+        previewText += specialChars.charAt(randomIndex);
+      }
+    }
+
+    if (previewText) {
+      calculateStrength(previewText);
+    }
+  }
+
   return {
     init: function () {
       this.setupDefaults();
@@ -875,9 +950,6 @@ const StarpassApp = (() => {
       this.setupRangeInputDisplays();
     },
 
-    /**
-     * Sets up default values for inputs and checkboxes
-     */
     setupDefaults: function () {
       setupInputValidation();
 
@@ -920,9 +992,6 @@ const StarpassApp = (() => {
       });
     },
 
-    /**
-     * Sets up theme toggles and applies saved preferences
-     */
     setupThemeToggles: function () {
       const darkModeToggle = getElementById("dark-mode-toggle");
       const highContrastToggle = getElementById("high-contrast-toggle");
@@ -944,9 +1013,6 @@ const StarpassApp = (() => {
       }
     },
 
-    /**
-     * Sets up form submissions
-     */
     setupFormSubmissions: function () {
       const forms = [
         { selector: '#password-form', handler: () => this.generatePassword() },
@@ -965,9 +1031,6 @@ const StarpassApp = (() => {
       });
     },
 
-    /**
-     * Sets up tab switching
-     */
     setupTabSwitching: function () {
       document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', () => {
@@ -977,9 +1040,6 @@ const StarpassApp = (() => {
       });
     },
 
-    /**
-     * Sets up copy and save buttons
-     */
     setupCopyAndSaveButtons: function () {
       const copyButton = Array.from(document.querySelectorAll('button'))
         .find(btn => btn.textContent.includes('Copy'));
@@ -1010,9 +1070,6 @@ const StarpassApp = (() => {
       }
     },
 
-    /**
-     * Sets up range input displays
-     */
     setupRangeInputDisplays: function () {
       ['password-length', 'word-count', 'username-length', 'username-word-count'].forEach(id => {
         const input = getElementById(id);
@@ -1026,16 +1083,7 @@ const StarpassApp = (() => {
       });
     },
 
-    /**
-     * Switches between tabs in the UI
-     * @param {string} tabName - Name of the tab to switch to
-     */
-    /**
- * Switches between tabs in the UI
- * @param {string} tabName - Name of the tab to switch to
- */
     switchTab: function (tabName) {
-      // Hide all tab contents and remove active class from buttons
       document.querySelectorAll(".tab-content").forEach(tab =>
         tab.classList.remove("active")
       );
@@ -1044,7 +1092,6 @@ const StarpassApp = (() => {
         button.classList.remove("active")
       );
 
-      // Show selected tab and activate button
       const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
       const selectedTab = getElementById(tabName);
       const outputElement = getElementById("output");
@@ -1060,27 +1107,24 @@ const StarpassApp = (() => {
         selectedTab.classList.add("active");
       }
 
-      // Hide output if no result exists
       if (outputElement) {
         outputElement.classList.toggle("hidden", !currentResult.value);
       }
 
-      // Hide strength analysis for username tab, show for others
-      const isUsernameTab = tabName === "username";
       if (strengthBarElement) {
-        strengthBarElement.style.display = isUsernameTab ? "none" : "block";
+        strengthBarElement.style.display = tabName === "username" ? "none" : "block";
       }
       if (crackTimeElement) {
-        crackTimeElement.style.display = isUsernameTab ? "none" : "block";
-        if (isUsernameTab) {
-          crackTimeElement.textContent = ""; // Clear text to avoid stale data
+        crackTimeElement.style.display = tabName === "username" ? "none" : "block";
+        if (tabName === "username") {
+          crackTimeElement.textContent = "";
         }
       }
+
+      // Trigger strength preview on tab switch
+      previewStrength();
     },
 
-    /**
-     * Generates a random password based on user settings
-     */
     generatePassword: function () {
       const errorElement = getElementById("error");
       if (errorElement) {
@@ -1114,7 +1158,6 @@ const StarpassApp = (() => {
       };
 
       const excludeAmbiguous = elements['exclude-ambiguous'].checked;
-      console.log("excludeAmbiguous:", excludeAmbiguous); // Debug
 
       if (!Object.values(settings).every(val => isValidNumber(val, 0, 1000)) ||
         !isValidNumber(settings.length, 1, 1000)) {
@@ -1139,7 +1182,6 @@ const StarpassApp = (() => {
         charSets.uppercase = charSets.uppercase.replace(/[IO]/g, "");
         charSets.numbers = charSets.numbers.replace(/[01]/g, "");
         charSets.special = charSets.special.replace(/[(){}\[\]]/g, "");
-        console.log("Modified charSets:", charSets); // Debug
       }
 
       let password = "";
@@ -1164,13 +1206,11 @@ const StarpassApp = (() => {
 
       password = shuffleString(password);
 
-      // Verify no ambiguous characters
       if (excludeAmbiguous) {
         const ambiguousPattern = /[lIO01(){}\[\]]/;
         if (ambiguousPattern.test(password)) {
           console.warn("Ambiguous characters found in password:", password);
           displayMessage("Warning: Password contains ambiguous characters.", false);
-          // Regenerate password to ensure compliance
           return this.generatePassword();
         } else {
           displayMessage("Password generated without ambiguous characters.", true);
@@ -1186,9 +1226,6 @@ const StarpassApp = (() => {
       calculateStrength(password);
     },
 
-    /**
-     * Generates a random passphrase
-     */
     generatePassphrase: async function () {
       const errorElement = getElementById("error");
       if (errorElement) {
@@ -1265,9 +1302,6 @@ const StarpassApp = (() => {
       calculateStrength(passphrase);
     },
 
-    /**
-    * Generates a random username
-    */
     generateUsername: async function () {
       const errorElement = getElementById("error");
       if (errorElement) {
@@ -1318,16 +1352,13 @@ const StarpassApp = (() => {
 
       let username = words.join("");
       if (includeNumber) {
-        // Reserve space for up to 4 digits
         const maxDigits = Math.min(4, Math.max(1, length - username.length));
         const number = getSecureRandom(Math.pow(10, maxDigits));
         username += number;
-        // Trim to ensure total length doesn't exceed specified length
         if (username.length > length) {
           username = username.substring(0, length);
         }
       } else if (username.length > length) {
-        // Trim if no number is included and length is exceeded
         username = username.substring(0, length);
       }
 
@@ -1343,17 +1374,10 @@ const StarpassApp = (() => {
       setResult(username);
     },
 
-    /**
-     * Gets current result for external access
-     * @returns {Object} Current result object
-     */
     getCurrentResult: function () {
       return { ...currentResult };
     },
 
-    /**
-     * Clears current result
-     */
     clearResult: function () {
       currentResult = { value: "", type: "" };
       const outputElement = getElementById("output");
@@ -1364,7 +1388,6 @@ const StarpassApp = (() => {
   };
 })();
 
-// Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
   StarpassApp.init();
 });
