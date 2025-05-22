@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <title>Starpass Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <main id="main-content" class="container">
+        <h1>Starpass Generator (Beta)</h1>
+
+        <div class="flex space-x-2">
+            <button class="tab-button active" data-tab="password-tab">Password</button>
+            <button class="tab-button" data-tab="passphrase-tab">Passphrase</button>
+            <button class="tab-button" data-tab="username-tab">Username</button>
+        </div>
+
+        <div id="password-tab" class="tab-content active">
+            <form class="space-y-4" action="javascript:void(0)" id="password-form">
+                <div>
+                    <label for="password-length">Password Length: <span>16</span></label>
+                    <input type="range" id="password-length" min="4" max="128" value="16"
+                        aria-describedby="password-length-desc">
+                    <p id="password-length-desc">Total length of the generated password.</p>
+                </div>
+                <div>
+                    <label for="lowercase">Lowercase Letters</label>
+                    <input type="number" id="lowercase" min="1" aria-describedby="lowercase-desc">
+                    <p id="lowercase-desc">Number of lowercase letters in the password.</p>
+                </div>
+                <div>
+                    <label for="uppercase">Uppercase Letters</label>
+                    <input type="number" id="uppercase" min="1" aria-describedby="uppercase-desc">
+                    <p id="uppercase-desc">Number of uppercase letters in the password.</p>
+                </div>
+                <div>
+                    <label for="numbers">Numbers</label>
+                    <input type="number" id="numbers" min="1" aria-describedby="numbers-desc">
+                    <p id="numbers-desc">Number of digits in the password.</p>
+                </div>
+                <div>
+                    <label for="special">Special Characters</label>
+                    <input type="number" id="special" min="1" aria-describedby="special-desc">
+                    <p id="special-desc">Number of special characters in the password.</p>
+                </div>
+                <div>
+                    <label for="exclude-ambiguous">
+                        <input type="checkbox" id="exclude-ambiguous">
+                        Exclude ambiguous characters (e.g., l, I, O, (), [], <,>)
+                    </label>
+                </div>
+                <button type="submit" class="btn" aria-live="polite">Generate Password</button>
+            </form>
+        </div>
+
+        <div id="passphrase-tab" class="tab-content">
+            <form class="space-y-4" action="javascript:void(0)" id="passphrase-form">
+                <div>
+                    <label for="word-count">Number of Words: <span>4</span></label>
+                    <input type="range" id="word-count" min="2" max="8" value="4" aria-describedby="word-count-desc">
+                    <p id="word-count-desc">Number of words in the passphrase.</p>
+                </div>
+                <div>
+                    <label for="separator">Word Separator</label>
+                    <select id="separator" aria-describedby="separator-desc">
+                        <option value="hyphen">Hyphen (-)</option>
+                        <option value="dot">Dot (.)</option>
+                        <option value="underscore">Underscore (_)</option>
+                        <option value="space">Space ( )</option>
+                        <option value="none">None</option>
+                    </select>
+                    <p id="separator-desc">Separator between words in the passphrase.</p>
+                </div>
+                <div>
+                    <label>
+                        <input type="checkbox" id="capitalize-words">
+                        Capitalize first letter of each word
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input type="checkbox" id="include-number">
+                        Add number at the end
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input type="checkbox" id="include-special">
+                        Add special character at the end
+                    </label>
+                </div>
+                <button type="submit" class="btn">Generate Passphrase</button>
+            </form>
+        </div>
+
+        <div id="username-tab" class="tab-content">
+            <form class="space-y-4" action="javascript:void(0)" id="username-form">
+                <div>
+                    <label for="username-length">Username Length: <span>10</span></label>
+                    <input type="range" id="username-length" min="4" max="50" value="10"
+                        aria-describedby="username-length-desc">
+                    <p id="username-length-desc">Target length of the generated username.</p>
+                </div>
+                <div>
+                    <label for="username-word-count">Word Count: <span>3</span></label>
+                    <input type="range" id="username-word-count" min="1" max="12" value="3"
+                        aria-describedby="username-word-count-desc">
+                    <p id="username-word-count-desc">Number of words to combine.</p>
+                </div>
+                <div>
+                    <label for="include-number-username">
+                        <input type="checkbox" id="include-number-username">
+                        Include number at the end
+                    </label>
+                </div>
+                <div>
+                    <label for="all-lowercase">
+                        <input type="checkbox" id="all-lowercase">
+                        All lowercase
+                    </label>
+                </div>
+                <button type="submit" class="btn">Generate Username</button>
+            </form>
+        </div>
+
+        <div class="accessibility-panel">
+            <button id="dark-mode-toggle">Toggle Theme</button>
+            <button id="high-contrast-toggle">Toggle High Contrast</button>
+        </div>
+
+        <div id="output" class="hidden">
+            <h3>Generated Result:</h3>
+            <div id="result"></div>
+            <div id="error" class="error" aria-live="polite"></div>
+            <div class="flex space-x-2">
+                <button class="btn">Copy to Clipboard</button>
+                <button id="save-button" class="btn" disabled title="This feature is not yet available.">Save to History<sup>Coming soon!</sup></button>
+            </div>
+            <h3 class="hidden">Strength Analysis:</h3>
+            <div id="strength-bar">
+                <div id="strength-bar-fill"></div>
+            </div>
+            <p id="crack-time">
+                <span>Password Strength:</span>
+                <span id="strength-text">Calculating...</span>
+            </p>
+        </div>
+    </main>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(() => console.log('Service Worker registered'))
+            .catch(error => console.error('Service Worker registration failed:', error));
+        }
+      </script>
+</body>
+</html>
