@@ -76,7 +76,15 @@ const StarpassApp = (() => {
     numbers: /[01]/g,
     special: /[(){}\[\]<>?]/g
   };
-
+  // Translations for new UI elements (adding basic English translations)
+  const translations = {
+    en: {
+      fillInStarryCryptBtn: "Fill in StarryCrypt",
+      noPasswordError: "No password generated. Please generate a password first.",
+      noCallbackError: "No callback URL provided.",
+      callbackError: "Failed to redirect to StarryCrypt."
+    }
+  };
   /**
    * Securely logs errors without exposing sensitive data
    * @param {Error} error - The error object
@@ -118,6 +126,7 @@ const StarpassApp = (() => {
       isSuccess
     );
   }
+
 
   /**
    * Estimates localStorage usage as a percentage of quota
@@ -358,59 +367,75 @@ const StarpassApp = (() => {
    */
   function getElementById(id) {
     if (!id || typeof id !== 'string') {
-      console.error("getElementById: Invalid ID provided");
-      return null;
+        console.error("getElementById: Invalid ID provided");
+        return null;
     }
 
     const element = document.getElementById(id);
-    if (!element) {
-      console.warn(`Element with ID "${id}" not found`);
-      displayMessage(`Missing interface element: ${id}. Please refresh the page.`);
-      return null;
-    }
-    return element;
+    if (!element && id !== "error") { // Skip message for "error" to avoid recursion
+        console.warn(`Element with ID "${id}" not found`);
+        if (document.body) {
+            const tempMessage = document.createElement('div');
+            tempMessage.textContent = `Missing interface element: ${id}. Please refresh the page.`;
+            tempMessage.style.cssText = `
+                position: fixed; top: 20px; right: 20px;
+                padding: 10px; border-radius: 4px; z-index: 9999;
+                background: #f8d7da; color: #721c24;
+                border: 1px solid #f5c6cb;
+            `;
+            document.body.appendChild(tempMessage);
+          setTimeout(function removeTempMessage() { // Named function
+              tempMessage.remove();
+          }, 3000);
+      }
   }
-
-  /**
-   * Displays a message to the user with enhanced accessibility
-   * @param {string} message - The message to display
-   * @param {boolean} isSuccess - Whether this is a success message
-   */
-  function displayMessage(message, isSuccess = false) {
-    const errorElement = getElementById("error");
+  return element;
+}
+/**
+ * Displays a message to the user with enhanced accessibility
+ * @param {string} message - The message to display
+ * @param {boolean} isSuccess - Whether this is a success message
+ */
+function displayMessage(message, isSuccess = false) {
+    // Use direct DOM access to avoid recursion
+    let errorElement = document.getElementById("error");
     if (!errorElement) {
-      const tempMessage = document.createElement('div');
-      tempMessage.textContent = message;
-      tempMessage.style.cssText = `
-        position: fixed; top: 20px; right: 20px; 
-        padding: 10px; border-radius: 4px; z-index: 9999;
-        background: ${isSuccess ? '#d4edda' : '#f8d7da'};
-        color: ${isSuccess ? '#155724' : '#721c24'};
-        border: 1px solid ${isSuccess ? '#c3e6cb' : '#f5c6cb'};
-      `;
-      document.body.appendChild(tempMessage);
-      setTimeout(() => tempMessage.remove(), 3000);
-      return;
+        console.warn("Error element not found, using fallback");
+        if (!document.body) {
+            console.error("document.body not available");
+            return;
+        }
+        errorElement = document.createElement('div');
+        errorElement.id = "temp-error";
+        errorElement.style.cssText = `
+            position: fixed; top: 20px; right: 20px;
+            padding: 10px; border-radius: 4px; z-index: 9999;
+            background: ${isSuccess ? '#d4edda' : '#f8d7da'};
+            color: ${isSuccess ? '#155724' : '#721c24'};
+            border: 1px solid ${isSuccess ? '#c3e6cb' : '#f5c6cb'};
+        `;
+        document.body.appendChild(errorElement);
     }
 
     errorElement.textContent = message;
     errorElement.style.opacity = "1";
-    errorElement.style.padding = "var(--spacing-sm, 8px)";
-    errorElement.style.borderLeft = "4px solid " +
-      (isSuccess ? "var(--color-success, #28a745)" : "var(--color-error, #dc3545)");
+    errorElement.style.padding = "8px";
+    errorElement.style.borderLeft = `4px solid ${isSuccess ? '#28a745' : '#dc3545'}`;
     errorElement.classList.toggle("success", isSuccess);
     errorElement.setAttribute("role", "alert");
-    errorElement.setAttribute("aria-live", "polite");
 
-    setTimeout(() => {
-      errorElement.textContent = "";
-      errorElement.style.opacity = "0";
-      errorElement.style.padding = "0";
-      errorElement.style.borderLeft = "none";
-      errorElement.classList.remove("success");
-      errorElement.removeAttribute("role");
+    setTimeout(function clearMessage() { // Named function to avoid unnamed statement
+        errorElement.textContent = "";
+        errorElement.style.opacity = "0";
+        errorElement.style.padding = "0";
+        errorElement.style.borderLeft = "none";
+        errorElement.classList.remove("success");
+        errorElement.removeAttribute("role");
+        if (errorElement.id === "temp-error") {
+            errorElement.remove();
+        }
     }, 3000);
-  }
+}
 
   /**
    * Validates that a number is within range
@@ -607,9 +632,9 @@ const StarpassApp = (() => {
 
       const crackTimeText = formatCrackTime(crackTimeSeconds);
       const label = normalizedScore < 20 ? "Very Weak" :
-                    normalizedScore < 40 ? "Weak" :
-                    normalizedScore < 60 ? "Medium" :
-                    normalizedScore < 80 ? "Strong" : "Very Strong";
+        normalizedScore < 40 ? "Weak" :
+          normalizedScore < 60 ? "Medium" :
+            normalizedScore < 80 ? "Strong" : "Very Strong";
 
       const strengthInfo = {
         score: normalizedScore,
@@ -728,7 +753,7 @@ const StarpassApp = (() => {
       crackTimeElement.textContent = `Strength: ${label} (Crack time: ${crackTimeText}, Entropy: ${entropy} bits)`;
 
       // Add tooltip with detailed info
-      strengthBarElement.setAttribute("title", 
+      strengthBarElement.setAttribute("title",
         `Strength: ${label}\nScore: ${score}/100\nCrack time: ${crackTimeText}\nEntropy: ${entropy} bits\nSuggestions: ${suggestions.join(" ") || "None"}`);
     }
   }
@@ -752,9 +777,9 @@ const StarpassApp = (() => {
     if (hasSpecial) score += 20;
 
     const label = score < 20 ? "Very Weak" :
-                  score < 40 ? "Weak" :
-                  score < 60 ? "Medium" :
-                  score < 80 ? "Strong" : "Very Strong";
+      score < 40 ? "Weak" :
+        score < 60 ? "Medium" :
+          score < 80 ? "Strong" : "Very Strong";
 
     const strengthInfo = {
       score: score,
@@ -948,6 +973,7 @@ const StarpassApp = (() => {
       this.setupTabSwitching();
       this.setupCopyAndSaveButtons();
       this.setupRangeInputDisplays();
+      this.setupFillInStarryCrypt();
     },
 
     setupDefaults: function () {
@@ -1082,8 +1108,79 @@ const StarpassApp = (() => {
         }
       });
     },
+    setupFillInStarryCrypt: function () {
+      const fillInStarryCryptBtn = document.getElementById("fill-in-starrycrypt");
+      if (fillInStarryCryptBtn) {
+          // Remove any existing listeners to prevent duplication
+          fillInStarryCryptBtn.replaceWith(fillInStarryCryptBtn.cloneNode(true));
+          const newBtn = document.getElementById("fill-in-starrycrypt");
 
-    switchTab: function (tabName) {
+          // Check if callback URL is present
+          const urlParams = new URLSearchParams(window.location.search);
+          const callbackUrl = urlParams.get("callback");
+          if (!callbackUrl) {
+              newBtn.style.display = "none"; // Hide button
+          } else {
+              newBtn.style.display = "block";
+              newBtn.textContent = translations.en.fillInStarryCryptBtn;
+              newBtn.addEventListener("click", () => this.fillInStarryCrypt(), { once: true });
+          }
+      }
+  },
+
+  fillInStarryCrypt: function () {
+      const currentResult = this.getCurrentResult();
+      if (!currentResult.value) {
+          this.displayMessage(translations.en.noPasswordError, false);
+          return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      let callbackUrl = urlParams.get("callback");
+
+      if (!callbackUrl) {
+          this.displayMessage(translations.en.noCallbackError, false);
+          return;
+      }
+
+      try {
+          // Sanitize the password
+          const sanitizedPassword = this.sanitizeInput(currentResult.value);
+          if (!sanitizedPassword) {
+              this.displayMessage(translations.en.noPasswordError, false);
+              return;
+          }
+
+          // Decode and validate callback URL
+          callbackUrl = decodeURIComponent(callbackUrl);
+
+          // Validate URL to prevent loops
+          const parsedUrl = new URL(callbackUrl, window.location.origin);
+          if (parsedUrl.origin === window.location.origin) {
+              console.warn("Callback URL points to Starpass, preventing redirect loop");
+              this.displayMessage(translations.en.callbackError, false);
+              return;
+          }
+
+          if (!callbackUrl.includes("starpass_password={password}")) {
+              console.warn("Invalid callback URL format");
+              this.displayMessage(translations.en.callbackError, false);
+              return;
+          }
+
+          // Replace {password} placeholder
+          const encodedPassword = encodeURIComponent(sanitizedPassword);
+          const finalUrl = callbackUrl.replace("{password}", encodedPassword);
+
+          // Redirect
+          window.location.href = finalUrl;
+      } catch (error) {
+          console.error("Failed to process callback URL:", error);
+          this.displayMessage(translations.en.callbackError, false);
+      }
+}
+,
+switchTab: function (tabName) {
       document.querySelectorAll(".tab-content").forEach(tab =>
         tab.classList.remove("active")
       );
