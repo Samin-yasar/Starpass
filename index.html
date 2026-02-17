@@ -1,166 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2563eb">
-    <title>Starpass Generator</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>Starpass — Password Generator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="ui.js" defer></script>
+  <script src="history.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
-
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <main id="main-content" class="container">
-        <h1>Starpass Generator (Beta)</h1>
-
-        <div class="flex space-x-2">
-            <button class="tab-button active" data-tab="password-tab">Password</button>
-            <button class="tab-button" data-tab="passphrase-tab">Passphrase</button>
-            <button class="tab-button" data-tab="username-tab">Username</button>
+  <!-- ═══ HEADER ═══════════════════════════════════════════════════════════ -->
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <a class="brand" href="#" aria-label="Starpass home">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+            <path d="M16 2L20.5 11.5L30 16L20.5 20.5L16 30L11.5 20.5L2 16L11.5 11.5L16 2Z" fill="currentColor"/>
+            <circle cx="16" cy="16" r="4" fill="var(--bg)"/>
+          </svg>
         </div>
+        <span class="brand-name">Starpass</span>
+      </a>
+      <nav class="header-nav" aria-label="Site navigation">
+        <button class="pill-btn" id="help-button" aria-haspopup="dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>
+          Help
+        </button>
+        <button class="pill-btn" id="changelog-button" aria-haspopup="dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Changelog
+        </button>
+        <button class="pill-btn accent" id="share-button" aria-haspopup="dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
+      </nav>
+    </div>
+  </header>
 
-        <div id="password-tab" class="tab-content active">
-            <form class="space-y-4" action="javascript:void(0)" id="password-form">
-                <div>
-                    <label for="password-length">Password Length: <span>16</span></label>
-                    <input type="range" id="password-length" min="4" max="128" value="16"
-                        aria-describedby="password-length-desc">
-                    <p id="password-length-desc">Total length of the generated password.</p>
-                </div>
-                <div>
-                    <label for="lowercase">Lowercase Letters</label>
-                    <input type="number" id="lowercase" min="1" aria-describedby="lowercase-desc">
-                    <p id="lowercase-desc">Number of lowercase letters in the password.</p>
-                </div>
-                <div>
-                    <label for="uppercase">Uppercase Letters</label>
-                    <input type="number" id="uppercase" min="1" aria-describedby="uppercase-desc">
-                    <p id="uppercase-desc">Number of uppercase letters in the password.</p>
-                </div>
-                <div>
-                    <label for="numbers">Numbers</label>
-                    <input type="number" id="numbers" min="1" aria-describedby="numbers-desc">
-                    <p id="numbers-desc">Number of digits in the password.</p>
-                </div>
-                <div>
-                    <label for="special">Special Characters</label>
-                    <input type="number" id="special" min="1" aria-describedby="special-desc">
-                    <p id="special-desc">Number of special characters in the password.</p>
-                </div>
-                <div>
-                    <label for="exclude-ambiguous">
-                        <input type="checkbox" id="exclude-ambiguous">
-                        Exclude ambiguous characters (e.g., l, I, O, (), [], <,>)
-                    </label>
-                </div>
-                <button type="submit" class="btn" aria-live="polite">Generate Password</button>
-            </form>
+  <!-- ═══ MODALS (header) ═══════════════════════════════════════════════════ -->
+
+  <!-- Help Modal -->
+  <div id="help-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="modal-sheet">
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+      <div class="modal-head">
+        <h2 id="help-title">Help &amp; Tips</h2>
+        <button class="modal-close-btn" id="help-close" aria-label="Close help">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="help-card">
+          <div class="help-icon">🔒</div>
+          <div>
+            <h3>Password Generator</h3>
+            <p>Set minimum counts per character type. Total length auto-expands if minimums exceed it.</p>
+          </div>
         </div>
-
-        <div id="passphrase-tab" class="tab-content">
-            <form class="space-y-4" action="javascript:void(0)" id="passphrase-form">
-                <div>
-                    <label for="word-count">Number of Words: <span>4</span></label>
-                    <input type="range" id="word-count" min="2" max="8" value="4" aria-describedby="word-count-desc">
-                    <p id="word-count-desc">Number of words in the passphrase.</p>
-                </div>
-                <div>
-                    <label for="separator">Word Separator</label>
-                    <select id="separator" aria-describedby="separator-desc">
-                        <option value="hyphen">Hyphen (-)</option>
-                        <option value="dot">Dot (.)</option>
-                        <option value="underscore">Underscore (_)</option>
-                        <option value="space">Space ( )</option>
-                        <option value="none">None</option>
-                    </select>
-                    <p id="separator-desc">Separator between words in the passphrase.</p>
-                </div>
-                <div>
-                    <label>
-                        <input type="checkbox" id="capitalize-words">
-                        Capitalize first letter of each word
-                    </label>
-                </div>
-                <div>
-                    <label>
-                        <input type="checkbox" id="include-number">
-                        Add number at the end
-                    </label>
-                </div>
-                <div>
-                    <label>
-                        <input type="checkbox" id="include-special">
-                        Add special character at the end
-                    </label>
-                </div>
-                <button type="submit" class="btn">Generate Passphrase</button>
-            </form>
+        <div class="help-card">
+          <div class="help-icon">💬</div>
+          <div>
+            <h3>Passphrase Generator</h3>
+            <p>4–6 random words is typically stronger than a short complex password and far easier to remember.</p>
+          </div>
         </div>
-
-        <div id="username-tab" class="tab-content">
-            <form class="space-y-4" action="javascript:void(0)" id="username-form">
-                <div>
-                    <label for="username-length">Username Length: <span>10</span></label>
-                    <input type="range" id="username-length" min="4" max="50" value="10"
-                        aria-describedby="username-length-desc">
-                    <p id="username-length-desc">Target length of the generated username.</p>
-                </div>
-                <div>
-                    <label for="username-word-count">Word Count: <span>3</span></label>
-                    <input type="range" id="username-word-count" min="1" max="12" value="3"
-                        aria-describedby="username-word-count-desc">
-                    <p id="username-word-count-desc">Number of words to combine.</p>
-                </div>
-                <div>
-                    <label for="include-number-username">
-                        <input type="checkbox" id="include-number-username">
-                        Include number at the end
-                    </label>
-                </div>
-                <div>
-                    <label for="all-lowercase">
-                        <input type="checkbox" id="all-lowercase">
-                        All lowercase
-                    </label>
-                </div>
-                <button type="submit" class="btn">Generate Username</button>
-            </form>
+        <div class="help-card">
+          <div class="help-icon">👤</div>
+          <div>
+            <h3>Username Generator</h3>
+            <p>Combines word fragments to create unique, pronounceable usernames.</p>
+          </div>
         </div>
-
-        <div class="accessibility-panel">
-            <button id="dark-mode-toggle">Toggle Theme</button>
-            <button id="high-contrast-toggle">Toggle High Contrast</button>
+        <div class="help-card">
+          <div class="help-icon">🛡️</div>
+          <div>
+            <h3>Encrypted History</h3>
+            <p>History is encrypted with AES-256-GCM using a master password you set. Keys are derived with PBKDF2-HMAC-SHA-512 at 250,000 iterations. Nothing ever leaves your device.</p>
+          </div>
         </div>
+        <div class="help-card">
+          <div class="help-icon">⌨️</div>
+          <div>
+            <h3>Keyboard Shortcuts</h3>
+            <p><kbd>Enter</kbd> generates · <kbd>Esc</kbd> closes modals · <kbd>Tab</kbd> navigates</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <div id="output" class="hidden">
-            <h3>Generated Result:</h3>
-            <div id="result"></div>
-            <div id="error" class="error" aria-live="polite"></div>
-            <div class="flex space-x-2">
-                <button class="btn">Copy to Clipboard</button>
-                <button id="save-button" class="btn" disabled title="This feature is not yet available.">Save to History<sup>Coming soon!</sup></button>
-                <button class="btn" id="fill-in-starrycrypt">Fill in StarryCrypt</button>
+  <!-- Changelog Modal -->
+  <div id="changelog-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="changelog-title">
+    <div class="modal-sheet">
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+      <div class="modal-head">
+        <h2 id="changelog-title">Changelog</h2>
+        <button class="modal-close-btn" id="changelog-close" aria-label="Close changelog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="changelog-version">
+          <div class="version-tag current">v2.2 — Current</div>
+          <ul><li>Full redesign — mobile-first, fit-to-screen layout</li><li>Master password model with PBKDF2-HMAC-SHA-512 (250k iterations)</li><li>AES-256-GCM encryption, single key per vault</li><li>Smooth modal animations, no stuck scrolling</li><li>Accurate zxcvbn strength bar with label + crack time</li></ul>
+        </div>
+        <div class="changelog-version">
+          <div class="version-tag">v2.1</div>
+          <ul><li>IndexedDB encrypted history</li><li>Per-entry AES-GCM encryption</li><li>Strength analysis via zxcvbn</li></ul>
+        </div>
+        <div class="changelog-version">
+          <div class="version-tag">v2.0</div>
+          <ul><li>Tabbed generator interface</li><li>Passphrase + username generators</li><li>Crypto-secure random generation</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="share-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="modal-sheet modal-sheet--sm">
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+      <div class="modal-head">
+        <h2 id="share-title">Share Starpass</h2>
+        <button class="modal-close-btn" id="share-close" aria-label="Close share">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="share-desc">Free, private, zero-server password generation.</p>
+        <div class="share-btns">
+          <button class="share-action" id="copy-url-button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Copy link
+          </button>
+          <button class="share-action" id="twitter-share">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>
+            Post on X
+          </button>
+          <button class="share-action" id="email-share">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Send email
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN ══════════════════════════════════════════════════════════════ -->
+  <main class="main" id="main-content">
+
+    <!-- LEFT: Generator -->
+    <section class="panel generator-panel" aria-label="Password generator">
+
+      <!-- Tab bar -->
+      <div class="tab-rail" role="tablist" aria-label="Generator type">
+        <button class="tab-btn active" data-tab="password" role="tab" aria-selected="true" aria-controls="password">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Password
+        </button>
+        <button class="tab-btn" data-tab="passphrase" role="tab" aria-selected="false" aria-controls="passphrase">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Passphrase
+        </button>
+        <button class="tab-btn" data-tab="username" role="tab" aria-selected="false" aria-controls="username">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Username
+        </button>
+      </div>
+
+      <!-- Tab: Password -->
+      <div id="password" class="tab-content active" role="tabpanel">
+        <form id="password-form" novalidate>
+          <div class="field-row">
+            <label for="password-length" class="field-label">
+              Length
+              <span class="field-value"><span class="value-display">16</span></span>
+            </label>
+            <input type="range" id="password-length" name="password-length" min="4" max="128" value="16" class="slider" aria-valuemin="4" aria-valuemax="128" aria-valuenow="16">
+            <div class="slider-ticks" aria-hidden="true"><span>4</span><span>64</span><span>128</span></div>
+          </div>
+          <div class="count-grid">
+            <div class="count-field">
+              <label for="lowercase" class="count-label">Lowercase</label>
+              <input type="number" id="lowercase" value="4" min="0" max="64" class="count-input">
             </div>
-            <h3 class="hidden">Strength Analysis:</h3>
-            <div id="strength-bar">
-                <div id="strength-bar-fill"></div>
+            <div class="count-field">
+              <label for="uppercase" class="count-label">Uppercase</label>
+              <input type="number" id="uppercase" value="4" min="0" max="64" class="count-input">
             </div>
-            <p id="crack-time">
-                <span>Password Strength:</span>
-                <span id="strength-text">Calculating...</span>
-            </p>
+            <div class="count-field">
+              <label for="numbers" class="count-label">Numbers</label>
+              <input type="number" id="numbers" value="2" min="0" max="64" class="count-input">
+            </div>
+            <div class="count-field">
+              <label for="special" class="count-label">Special</label>
+              <input type="number" id="special" value="2" min="0" max="64" class="count-input">
+            </div>
+          </div>
+          <label class="toggle-row">
+            <input type="checkbox" id="exclude-ambiguous" class="toggle-input">
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-text">Exclude ambiguous characters <em>(l, I, O, 0)</em></span>
+          </label>
+          <button type="submit" class="generate-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Generate Password
+          </button>
+        </form>
+      </div>
+
+      <!-- Tab: Passphrase -->
+      <div id="passphrase" class="tab-content" role="tabpanel">
+        <form id="passphrase-form" novalidate>
+          <div class="field-row">
+            <label for="word-count" class="field-label">
+              Words
+              <span class="field-value"><span class="value-display">4</span></span>
+            </label>
+            <input type="range" id="word-count" min="2" max="10" value="4" class="slider" aria-valuemin="2" aria-valuemax="10" aria-valuenow="4">
+            <div class="slider-ticks" aria-hidden="true"><span>2</span><span>6</span><span>10</span></div>
+          </div>
+          <div class="field-row">
+            <label for="separator" class="field-label">Separator</label>
+            <select id="separator" class="select-input">
+              <option value="-">Hyphen  —</option>
+              <option value=".">Dot  .</option>
+              <option value="_">Underscore  _</option>
+              <option value=" ">Space</option>
+            </select>
+          </div>
+          <label class="toggle-row">
+            <input type="checkbox" id="capitalize-words" class="toggle-input">
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-text">Capitalize each word</span>
+          </label>
+          <label class="toggle-row">
+            <input type="checkbox" id="include-number" class="toggle-input">
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-text">Append a number</span>
+          </label>
+          <button type="submit" class="generate-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Generate Passphrase
+          </button>
+        </form>
+      </div>
+
+      <!-- Tab: Username -->
+      <div id="username" class="tab-content" role="tabpanel">
+        <form id="username-form" novalidate>
+          <div class="field-row">
+            <label for="username-length" class="field-label">
+              Length
+              <span class="field-value"><span class="value-display">12</span></span>
+            </label>
+            <input type="range" id="username-length" min="6" max="24" value="12" class="slider" aria-valuemin="6" aria-valuemax="24" aria-valuenow="12">
+            <div class="slider-ticks" aria-hidden="true"><span>6</span><span>15</span><span>24</span></div>
+          </div>
+          <label class="toggle-row">
+            <input type="checkbox" id="include-number-username" class="toggle-input">
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-text">Include a number</span>
+          </label>
+          <label class="toggle-row">
+            <input type="checkbox" id="all-lowercase" checked class="toggle-input">
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-text">All lowercase</span>
+          </label>
+          <button type="submit" class="generate-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Generate Username
+          </button>
+        </form>
+      </div>
+
+      <!-- Output -->
+      <div id="output" class="output hidden" aria-live="polite">
+        <div class="output-head">
+          <span class="output-label">Generated</span>
+          <button id="copy-button" class="icon-btn" title="Copy to clipboard" aria-label="Copy to clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
         </div>
-    </main>
-    <script src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(() => console.log('Service Worker registered'))
-            .catch(error => console.error('Service Worker registration failed:', error));
-        }
-      </script>
+        <div id="result" class="result-text" role="status" aria-label="Generated result"></div>
+        <button id="save-button" class="save-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+          Save to history
+        </button>
+
+        <!-- Strength -->
+        <div id="strength-analysis" class="strength-block hidden">
+          <div class="strength-header">
+            <span class="strength-title">Strength</span>
+            <span id="strength-label" class="strength-label" aria-live="polite"></span>
+          </div>
+          <div class="strength-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Password strength">
+            <div id="strength-bar-fill" class="strength-fill"></div>
+          </div>
+          <div id="crack-time" class="crack-info" aria-live="polite"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT: History -->
+    <section class="panel history-panel" aria-label="Password history">
+      <div class="history-top">
+        <h2 class="history-heading">History</h2>
+        <button id="clear-history-button" class="ghost-btn danger" title="Clear all history">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Clear all
+        </button>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="history-search" class="search-input" placeholder="Search by type or date…" aria-label="Search history">
+      </div>
+      <p id="history-caption" class="history-caption" aria-live="polite"></p>
+      <div id="historyList" class="history-list" role="list"></div>
+    </section>
+
+  </main>
+
+  <!-- ═══ PASSPHRASE (ENCRYPTION) MODAL ════════════════════════════════════ -->
+  <div id="passphrase-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-sheet modal-sheet--sm">
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+      <div class="modal-head">
+        <h2 id="modal-title">Master Password</h2>
+        <button class="modal-close-btn" id="cancel-passphrase" aria-label="Cancel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-description" class="modal-desc">Used to encrypt and decrypt your history with AES-256-GCM. Never stored — don't forget it.</p>
+        <div class="pass-field-wrap">
+          <input type="password" id="passphrase-input" class="pass-input" placeholder="Enter master password…" autocomplete="current-password" aria-describedby="modal-description">
+          <button type="button" id="clear-passphrase" class="pass-clear-btn" aria-label="Clear password field">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <label class="toggle-row">
+          <input type="checkbox" id="remember-passphrase" class="toggle-input">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-text">Remember for this session <em>(30 min)</em></span>
+        </label>
+        <button id="submit-passphrase" class="generate-btn" style="margin-top:1rem">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
 </body>
 </html>
