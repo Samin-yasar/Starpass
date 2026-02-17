@@ -1,10 +1,6 @@
 /**
  * ui.js — Starpass v2.2
- * Passphrase modal controller.
- * CSS contract: .hidden = display:none  |  .show = opacity:1 + sheet slides in
- * Pattern: remove('hidden') → rAF → add('show')   to open
- *          remove('show') → wait transition → add('hidden')  to close
- * Callback: (passphrase: string|null, remember: boolean)
+ * Passphrase modal controller
  */
 
 function sanitizeInput(value) {
