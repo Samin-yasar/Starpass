@@ -386,7 +386,7 @@ const StarpassApp = (() => {
         applyTheme(initialTheme);
 
         toggleBtn.addEventListener('click', () => {
-            const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            const current = root.getAttribute('data-theme') || 'dark';
             const next = current === 'dark' ? 'light' : 'dark';
             localStorage.setItem(THEME_STORAGE_KEY, next);
             applyTheme(next);
