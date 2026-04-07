@@ -58,7 +58,7 @@ Starpass Generator is a browser-based application that can be used online or ins
    ```
 5. Access at `http://localhost:8000`.
 
-> **Note**: The EFF Long Wordlist is included in the repository (`asset/eff_large_wordlist.txt`) for passphrase generation.[](https://www.eff.org/it/deeplinks/2016/07/new-wordlists-random-passphrases)
+> **Note**: The EFF Long Wordlist is included in the repository (`src/eff_large_wordlist.txt`) for passphrase generation.[](https://www.eff.org/it/deeplinks/2016/07/new-wordlists-random-passphrases)
 
 ## Usage
 
