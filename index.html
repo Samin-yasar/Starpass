@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0f"> 
   <title>Starpass — Password Generator</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -162,22 +164,22 @@
 
       <!-- Tab bar -->
       <div class="tab-rail" role="tablist" aria-label="Generator type">
-        <button class="tab-btn active" data-tab="password" role="tab" aria-selected="true" aria-controls="password">
+        <button id="tab-password-btn" class="tab-btn active" data-tab="password" role="tab" aria-selected="true" aria-controls="password">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Password
         </button>
-        <button class="tab-btn" data-tab="passphrase" role="tab" aria-selected="false" aria-controls="passphrase">
+        <button id="tab-passphrase-btn" class="tab-btn" data-tab="passphrase" role="tab" aria-selected="false" aria-controls="passphrase">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Passphrase
         </button>
-        <button class="tab-btn" data-tab="username" role="tab" aria-selected="false" aria-controls="username">
+        <button id="tab-username-btn" class="tab-btn" data-tab="username" role="tab" aria-selected="false" aria-controls="username">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           Username
         </button>
       </div>
 
       <!-- Tab: Password -->
-      <div id="password" class="tab-content active" role="tabpanel">
+      <div id="password" class="tab-content active" role="tabpanel" aria-labelledby="tab-password-btn">
         <form id="password-form" novalidate>
           <div class="field-row">
             <label for="password-length" class="field-label">
@@ -218,7 +220,7 @@
       </div>
 
       <!-- Tab: Passphrase -->
-      <div id="passphrase" class="tab-content" role="tabpanel">
+      <div id="passphrase" class="tab-content" role="tabpanel" aria-labelledby="tab-passphrase-btn">
         <form id="passphrase-form" novalidate>
           <div class="field-row">
             <label for="word-count" class="field-label">
@@ -255,7 +257,7 @@
       </div>
 
       <!-- Tab: Username -->
-      <div id="username" class="tab-content" role="tabpanel">
+      <div id="username" class="tab-content" role="tabpanel" aria-labelledby="tab-username-btn">
         <form id="username-form" novalidate>
           <div class="field-row">
             <label for="username-length" class="field-label">
@@ -325,7 +327,12 @@
         <input type="search" id="history-search" class="search-input" placeholder="Search by type or date…" aria-label="Search history">
       </div>
       <p id="history-caption" class="history-caption" aria-live="polite"></p>
-      <div id="historyList" class="history-list" role="list"></div>
+      <div id="historyList" class="history-list" role="list">
+        <div id="history-empty-state" class="history-empty">
+          <span aria-hidden="true">🗂️</span>
+          <span>No saved passwords yet — generate one and click Save</span>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -353,7 +360,7 @@
           <span class="toggle-track" aria-hidden="true"></span>
           <span class="toggle-text">Remember for this session <em>(30 min)</em></span>
         </label>
-        <button id="submit-passphrase" class="generate-btn" style="margin-top:1rem">Confirm</button>
+        <button id="submit-passphrase" class="generate-btn passphrase-submit-btn">Confirm</button>
       </div>
     </div>
   </div>
@@ -361,8 +368,7 @@
   <!-- Toast container -->
   <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
 
-</body>
-<footer class="footer">
+  <footer class="footer">
     <div class="footer-inner">
       <div class="footer-info">
         <p>&copy; 2026 Starpass. No data is ever sent to a server.</p>
@@ -377,5 +383,7 @@
         <a href="https://samin-yasar.github.io/Starpass/policy/terms-of-service" class="footer-link">Terms</a>
       </nav>
     </div>
-</footer>
+  </footer>
+
+</body>
 </html>
