@@ -34,11 +34,11 @@ function showPassphraseModal(callback) {
     if (!errEl) {
         errEl = document.createElement('p');
         errEl.className = 'modal-inline-error';
-        errEl.style.cssText = 'display:none;color:#f87171;font-size:.8125rem;margin-top:-4px;';
+        errEl.classList.add('hidden');
         errEl.setAttribute('aria-live', 'polite');
         input.insertAdjacentElement('afterend', errEl);
     }
-    errEl.style.display = 'none';
+    errEl.classList.add('hidden');
     errEl.textContent   = '';
 
     // Open: remove hidden first so element enters layout, then rAF for transition
@@ -48,7 +48,7 @@ function showPassphraseModal(callback) {
     });
 
     // Lock background scroll
-    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
 
     // Focus input after animation starts
     setTimeout(() => input.focus(), 80);
@@ -63,14 +63,14 @@ function showPassphraseModal(callback) {
     // ── Helpers ──────────────────────────────────────────────────────────
     function showError(msg) {
         errEl.textContent   = msg;
-        errEl.style.display = 'block';
+        errEl.classList.remove('hidden');
         clearTimeout(errEl._t);
-        errEl._t = setTimeout(() => { errEl.style.display = 'none'; }, 4000);
+        errEl._t = setTimeout(() => { errEl.classList.add('hidden'); }, 4000);
     }
 
     function close(passphrase, rem) {
         overlay.classList.remove('show');
-        document.body.style.overflow = '';
+        document.body.classList.remove('modal-open');
         // Wait for CSS transition to finish before hiding from layout
         const dur = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 400;
         setTimeout(() => overlay.classList.add('hidden'), dur);
