@@ -254,6 +254,7 @@ const PasswordHistoryManager = (() => {
         if (!db) return;
         const list = document.getElementById('historyList');
         if (!list) return;
+        const existingEmptyState = list.querySelector('#history-empty-state');
 
         try {
             const tx  = db.transaction([STORE_NAME], 'readonly');
@@ -276,9 +277,24 @@ const PasswordHistoryManager = (() => {
             );
 
             list.innerHTML = '';
+            let emptyState = existingEmptyState;
+            if (!emptyState) {
+                emptyState = document.createElement('div');
+                emptyState.id = 'history-empty-state';
+                emptyState.className = 'history-empty';
+                const icon = document.createElement('span');
+                icon.setAttribute('aria-hidden', 'true');
+                icon.textContent = '🗂️';
+                const text = document.createElement('span');
+                text.textContent = 'No saved passwords yet — generate one and click Save';
+                emptyState.appendChild(icon);
+                emptyState.appendChild(text);
+            }
+            emptyState.hidden = true;
+            list.appendChild(emptyState);
 
             if (records.length === 0) {
-                list.innerHTML = '<p class="history-empty">No history yet. Generate something and save it!</p>';
+                emptyState.hidden = false;
                 return;
             }
 

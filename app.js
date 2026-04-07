@@ -8,7 +8,7 @@
  */
 const StarpassApp = (() => {
     let wordList      = [];
-    let zxcvbnLoaded  = false;
+    let zxcvbnPromise = null;
     let currentResult = { value: '', type: '' };
 
     const CHARACTER_SETS = {
@@ -20,6 +20,8 @@ const StarpassApp = (() => {
 
     const SCORE_COLORS = ['#f87171','#fb923c','#fbbf24','#a3e635','#34d399'];
     const SCORE_LABELS = ['Very Weak','Weak','Fair','Strong','Very Strong'];
+    const COPY_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
 
     function $(id) { return document.getElementById(id); }
 
@@ -34,7 +36,8 @@ const StarpassApp = (() => {
     }
 
     function secureRandom(max) {
-        if (max <= 1) return 0;
+        if (max <= 0) throw new RangeError('secureRandom requires max to be greater than 0');
+        if (max === 1) return 0;
         const cap = Math.floor(0x100000000 / max) * max;
         const buf = new Uint32Array(1);
         do { crypto.getRandomValues(buf); } while (buf[0] >= cap);
@@ -65,14 +68,18 @@ const StarpassApp = (() => {
     }
 
     async function loadZxcvbn() {
-        if (zxcvbnLoaded) return;
-        await new Promise((resolve, reject) => {
+        if (zxcvbnPromise) return zxcvbnPromise;
+        zxcvbnPromise = new Promise((resolve, reject) => {
             const s   = document.createElement('script');
             s.src     = 'src/zxcvbn.min.js';
-            s.onload  = () => { zxcvbnLoaded = true; resolve(); };
-            s.onerror = () => reject(new Error('zxcvbn load failed'));
+            s.onload  = () => resolve();
+            s.onerror = () => {
+                zxcvbnPromise = null;
+                reject(new Error('zxcvbn load failed'));
+            };
             document.head.appendChild(s);
         });
+        return zxcvbnPromise;
     }
 
     // ── Crack time formatter ──────────────────────────────────────────────────
@@ -169,9 +176,27 @@ const StarpassApp = (() => {
             const rawSeconds = result.crack_times_seconds.offline_fast_hashing_1e10_per_second;
             const { main, sub } = formatCrackTime(rawSeconds);
 
-            crackEl.innerHTML = sub
-                ? `<span class="crack-time-label">Crack time:</span> <span class="crack-time-value">${main}</span><br><span class="crack-time-note">${sub}</span>`
-                : `<span class="crack-time-label">Crack time:</span> <span class="crack-time-value">${main}</span>`;
+            crackEl.textContent = '';
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'crack-time-label';
+            labelSpan.textContent = 'Crack time:';
+
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'crack-time-value';
+            valueSpan.textContent = main;
+
+            crackEl.appendChild(labelSpan);
+            crackEl.appendChild(document.createTextNode(' '));
+            crackEl.appendChild(valueSpan);
+
+            if (sub) {
+                crackEl.appendChild(document.createElement('br'));
+                const noteSpan = document.createElement('span');
+                noteSpan.className = 'crack-time-note';
+                noteSpan.textContent = sub;
+                crackEl.appendChild(noteSpan);
+            }
 
         } catch (err) {
             console.error('Strength calculation failed:', err);
@@ -185,7 +210,11 @@ const StarpassApp = (() => {
         const strengthEl = $('strength-analysis');
 
         if (resultEl)  resultEl.textContent = value;
-        if (outputEl)  outputEl.classList.remove('hidden');
+        if (outputEl) {
+            outputEl.classList.remove('hidden');
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            outputEl.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'nearest' });
+        }
 
         if (type === 'password' || type === 'passphrase') {
             calculateStrength(value);
@@ -229,6 +258,7 @@ const StarpassApp = (() => {
         setupOutputButtons();
         setupRangeDisplays();
         setupHeaderButtons();
+        registerServiceWorker();
         loadWordList();
     }
 
@@ -257,10 +287,18 @@ const StarpassApp = (() => {
     }
 
     function setupOutputButtons() {
-        $('copy-button').addEventListener('click', async () => {
+        const copyBtn = $('copy-button');
+        let copyIconResetTimer = null;
+
+        if (copyBtn) copyBtn.addEventListener('click', async () => {
             if (!currentResult.value) return;
             try {
                 await navigator.clipboard.writeText(currentResult.value);
+                copyBtn.innerHTML = CHECK_ICON;
+                clearTimeout(copyIconResetTimer);
+                copyIconResetTimer = setTimeout(() => {
+                    copyBtn.innerHTML = COPY_ICON;
+                }, 1500);
                 toast('Copied!', true);
             } catch { toast('Copy failed — try selecting manually.'); }
         });
@@ -317,6 +355,14 @@ const StarpassApp = (() => {
         });
     }
 
+    function registerServiceWorker() {
+        if (!('serviceWorker' in navigator)) return;
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .catch(err => console.error('Service worker registration failed:', err));
+        }, { once: true });
+    }
+
     // ── Generators ────────────────────────────────────────────────────────────
     function generatePassword() {
         const length       = parseInt($('password-length').value);
@@ -354,6 +400,10 @@ const StarpassApp = (() => {
         if (upperCount   > 0) fill += sets.uppercase;
         if (numCount     > 0) fill += sets.numbers;
         if (specialCount > 0) fill += sets.special;
+        if (fill.length === 0) {
+            toast('No characters available after filtering.');
+            return;
+        }
 
         const rem = effLen - chars.length;
         for (let i = 0; i < rem; i++) chars.push(fill[secureRandom(fill.length)]);
