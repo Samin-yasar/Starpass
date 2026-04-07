@@ -1,7 +1,7 @@
 {
   "name": "Starpass Generator",
   "short_name": "Starpass",
-  "start_url": ".",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#e6f0ff",
   "theme_color": "#2563eb",
@@ -17,5 +17,9 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "dir": "auto",
+  "lang": "en",
+  "orientation": "any",
+  "id": "dev.samin_yasar.starpass"
 }
