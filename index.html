@@ -5,7 +5,7 @@
   (function () {
     var arr = new Uint8Array(16);
     crypto.getRandomValues(arr);
-    var nonce = btoa(String.fromCharCode.apply(null, arr))
+    var nonce = btoa(Array.from(arr, function(b) { return String.fromCharCode(b); }).join(''))
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     window.cspNonce = nonce;
     var m = document.createElement('meta');
@@ -332,23 +332,33 @@
     </section>
 
     <!-- RIGHT: History -->
-    <section class="panel history-panel" aria-label="Password history">
+    <section class="panel history-panel" id="history-panel" aria-label="Password history">
       <div class="history-top">
-        <h2 class="history-heading">History</h2>
-        <button id="clear-history-button" class="ghost-btn danger" title="Clear all history">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          Clear all
-        </button>
+        <div class="history-heading-group">
+          <h2 class="history-heading">History</h2>
+          <span id="history-count-badge" class="history-count-badge" aria-live="polite" aria-label="History entry count"></span>
+        </div>
+        <div class="history-top-actions">
+          <button id="clear-history-button" class="ghost-btn danger" title="Clear all history">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Clear all
+          </button>
+          <button id="history-toggle-btn" class="icon-btn history-toggle-btn" title="Expand history" aria-label="Expand history" aria-expanded="false" aria-controls="history-body">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="search-wrap">
-        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="history-search" class="search-input" placeholder="Search by type or date…" aria-label="Search history">
-      </div>
-      <p id="history-caption" class="history-caption" aria-live="polite"></p>
-      <div id="historyList" class="history-list" role="list">
-        <div id="history-empty-state" class="history-empty">
-          <span aria-hidden="true">🗂️</span>
-          <span>No saved passwords yet — generate one and click Save</span>
+      <div class="history-body" id="history-body" aria-hidden="true">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="history-search" class="search-input" placeholder="Search by type or date…" aria-label="Search history">
+        </div>
+        <p id="history-caption" class="history-caption" aria-live="polite"></p>
+        <div id="historyList" class="history-list" role="list">
+          <div id="history-empty-state" class="history-empty">
+            <span aria-hidden="true">🗂️</span>
+            <span>No saved passwords yet — generate one and click Save</span>
+          </div>
         </div>
       </div>
     </section>

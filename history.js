@@ -26,6 +26,8 @@ const PasswordHistoryManager = (() => {
     const SESSION_MINS = 30;
     const PBKDF2_ITERS = 250_000;
     const VERIFY_PLAIN = 'starpass-v2-verify';
+    const EXPAND_KEY   = 'starpass-history-expanded';
+    const AUTO_HIDE_MS = 2 * 60 * 1000; // auto-hide revealed values after 2 minutes
 
     let db = null;
 
@@ -260,6 +262,10 @@ const PasswordHistoryManager = (() => {
             const tx  = db.transaction([STORE_NAME], 'readonly');
             const all = await idbReq(tx.objectStore(STORE_NAME).getAll());
 
+            // Count badge (always visible even when panel is collapsed)
+            const badge = document.getElementById('history-count-badge');
+            if (badge) badge.textContent = all.length > 0 ? String(all.length) : '';
+
             // Caption
             const caption = document.getElementById('history-caption');
             if (caption) {
@@ -304,8 +310,13 @@ const PasswordHistoryManager = (() => {
                 el.setAttribute('role', 'listitem');
                 el.innerHTML = `
                     <span class="history-badge">${esc(item.type)}</span>
-                    <span class="history-value" data-shown="false" data-id="${item.id}">••••••••</span>
-                    <span class="history-date">${new Date(item.timestamp).toLocaleDateString()}</span>
+                    <span class="history-meta">
+                        <span class="history-value" data-shown="false" data-id="${item.id}" title="Reveal to copy" role="button" tabindex="-1">••••••••</span>
+                        <span class="history-date">${new Date(item.timestamp).toLocaleDateString()}</span>
+                    </span>
+                    <button class="history-action copy-btn" data-id="${item.id}" title="Copy value" aria-label="Copy value" disabled aria-disabled="true">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
                     <button class="history-action view-btn" data-id="${item.id}" title="Reveal / hide" aria-label="Reveal or hide">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
@@ -320,8 +331,44 @@ const PasswordHistoryManager = (() => {
         }
     }
 
+    // ── Hide a revealed value and clean up its timer ────────────────────────────
+    function hideValue(valueEl, viewBtn) {
+        if (valueEl._hideTimer) { clearTimeout(valueEl._hideTimer); valueEl._hideTimer = null; }
+        valueEl.textContent   = '••••••••';
+        valueEl.dataset.shown = 'false';
+        valueEl.title         = 'Reveal to copy';
+        valueEl.tabIndex      = -1;
+        delete valueEl.dataset.copied;
+        const row = valueEl.closest('.history-item');
+        if (row) {
+            const copyBtn = row.querySelector('.copy-btn');
+            if (copyBtn) { copyBtn.disabled = true; copyBtn.setAttribute('aria-disabled', 'true'); }
+        }
+        if (viewBtn) viewBtn.setAttribute('aria-label', 'Reveal or hide');
+    }
+
+    // ── Copy a revealed value to clipboard ─────────────────────────────────────
+    async function copyValue(valueEl) {
+        const text = valueEl.textContent;
+        try {
+            await navigator.clipboard.writeText(text);
+            valueEl.dataset.copied = 'true';
+            setTimeout(() => { delete valueEl.dataset.copied; }, 1200);
+            toast('Copied!', true);
+        } catch {
+            toast('Copy failed — try selecting manually.');
+        }
+    }
+
     // ── Actions ────────────────────────────────────────────────────────────────
     async function handleClick(e) {
+        // Tap-to-copy: clicking the revealed value text
+        const valueTarget = e.target.closest('.history-value');
+        if (valueTarget && valueTarget.dataset.shown === 'true') {
+            await copyValue(valueTarget);
+            return;
+        }
+
         // Walk up from exact click target to find the action button
         const btn = e.target.closest('.history-action');
         if (!btn) return;
@@ -338,12 +385,15 @@ const PasswordHistoryManager = (() => {
 
             // Toggle: if shown, hide it immediately (no key needed)
             if (valueEl.dataset.shown === 'true') {
-                valueEl.textContent   = '••••••••';
-                valueEl.dataset.shown = 'false';
-                btn.setAttribute('aria-label', 'Reveal or hide');
+                hideValue(valueEl, btn);
                 return;
             }
             await viewItem(id, valueEl, btn);
+        } else if (btn.classList.contains('copy-btn')) {
+            const row     = btn.closest('.history-item');
+            const valueEl = row ? row.querySelector('.history-value') : null;
+            if (!valueEl || valueEl.dataset.shown !== 'true') return;
+            await copyValue(valueEl);
         }
     }
 
@@ -382,7 +432,20 @@ const PasswordHistoryManager = (() => {
             const plain = await aesDecrypt(item.iv, item.encryptedData, key);
             valueEl.textContent   = plain;
             valueEl.dataset.shown = 'true';
+            valueEl.title         = 'Tap to copy';
+            valueEl.tabIndex      = 0;
             btn.setAttribute('aria-label', 'Hide');
+
+            // Enable copy button
+            const row = valueEl.closest('.history-item');
+            if (row) {
+                const copyBtn = row.querySelector('.copy-btn');
+                if (copyBtn) { copyBtn.disabled = false; copyBtn.setAttribute('aria-disabled', 'false'); }
+            }
+
+            // Auto-hide after 2 minutes
+            if (valueEl._hideTimer) clearTimeout(valueEl._hideTimer);
+            valueEl._hideTimer = setTimeout(() => hideValue(valueEl, btn), AUTO_HIDE_MS);
         } catch (err) {
             console.error('Decrypt failed:', err);
             clearKeyCache();
@@ -417,11 +480,25 @@ const PasswordHistoryManager = (() => {
             await initDB();
             await loadAndDisplay();
 
-            const list     = document.getElementById('historyList');
-            const clearBtn = document.getElementById('clear-history-button');
-            const search   = document.getElementById('history-search');
+            const list      = document.getElementById('historyList');
+            const clearBtn  = document.getElementById('clear-history-button');
+            const search    = document.getElementById('history-search');
+            const toggleBtn = document.getElementById('history-toggle-btn');
+            const body      = document.getElementById('history-body');
+            const panel     = document.getElementById('history-panel');
 
-            if (list)     list.addEventListener('click', handleClick);
+            if (list) {
+                list.addEventListener('click', handleClick);
+                list.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        const valueTarget = e.target.closest('.history-value');
+                        if (valueTarget && valueTarget.dataset.shown === 'true') {
+                            e.preventDefault();
+                            copyValue(valueTarget);
+                        }
+                    }
+                });
+            }
             if (clearBtn) clearBtn.addEventListener('click', clearAll);
             if (search) {
                 let timer;
@@ -430,6 +507,37 @@ const PasswordHistoryManager = (() => {
                     timer = setTimeout(() => loadAndDisplay(search.value.trim()), 250);
                 });
             }
+
+            // ── Collapse / expand ──────────────────────────────────────────────
+            function setExpanded(expanded) {
+                if (!body || !toggleBtn || !panel) return;
+                if (expanded) {
+                    body.classList.add('expanded');
+                    body.removeAttribute('aria-hidden');
+                    panel.classList.add('expanded');
+                    toggleBtn.setAttribute('aria-expanded', 'true');
+                    toggleBtn.setAttribute('aria-label', 'Collapse history');
+                    toggleBtn.setAttribute('title', 'Collapse history');
+                    localStorage.setItem(EXPAND_KEY, '1');
+                } else {
+                    body.classList.remove('expanded');
+                    body.setAttribute('aria-hidden', 'true');
+                    panel.classList.remove('expanded');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                    toggleBtn.setAttribute('aria-label', 'Expand history');
+                    toggleBtn.setAttribute('title', 'Expand history');
+                    localStorage.removeItem(EXPAND_KEY);
+                }
+            }
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    setExpanded(!body.classList.contains('expanded'));
+                });
+            }
+
+            // Restore persisted state (collapsed by default)
+            setExpanded(!!localStorage.getItem(EXPAND_KEY));
         } catch (err) {
             console.error('PasswordHistoryManager init failed:', err);
         }

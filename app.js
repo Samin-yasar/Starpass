@@ -79,6 +79,7 @@ const StarpassApp = (() => {
         zxcvbnPromise = new Promise((resolve, reject) => {
             const s   = document.createElement('script');
             s.src     = 'src/zxcvbn.min.js';
+            if (window.cspNonce) s.setAttribute('nonce', window.cspNonce);
             s.onload  = () => resolve();
             s.onerror = () => {
                 zxcvbnPromise = null;
