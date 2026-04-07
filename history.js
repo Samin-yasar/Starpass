@@ -288,7 +288,6 @@ const PasswordHistoryManager = (() => {
                 const text = document.createElement('span');
                 text.textContent = 'No saved passwords yet — generate one and click Save';
                 emptyState.appendChild(icon);
-                emptyState.appendChild(document.createTextNode(' '));
                 emptyState.appendChild(text);
             }
             emptyState.hidden = true;

@@ -681,6 +681,10 @@ form { display: flex; flex-direction: column; gap: 18px; }
 }
 
 .history-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 24px 8px;
   font-size: 0.875rem;
   color: var(--txt-3);

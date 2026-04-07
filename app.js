@@ -36,7 +36,7 @@ const StarpassApp = (() => {
     }
 
     function secureRandom(max) {
-        if (max <= 0) throw new RangeError('secureRandom called with max <= 0');
+        if (max <= 0) throw new RangeError('secureRandom requires max to be greater than 0');
         if (max === 1) return 0;
         const cap = Math.floor(0x100000000 / max) * max;
         const buf = new Uint32Array(1);
@@ -212,7 +212,8 @@ const StarpassApp = (() => {
         if (resultEl)  resultEl.textContent = value;
         if (outputEl) {
             outputEl.classList.remove('hidden');
-            outputEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            outputEl.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'nearest' });
         }
 
         if (type === 'password' || type === 'passphrase') {
