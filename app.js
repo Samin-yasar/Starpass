@@ -294,20 +294,26 @@ const StarpassApp = (() => {
 
     function setupOutputButtons() {
         const copyBtn = $('copy-button');
+        const resultEl = $('result');
         let copyIconResetTimer = null;
 
-        if (copyBtn) copyBtn.addEventListener('click', async () => {
+        const copyCurrentResult = async () => {
             if (!currentResult.value) return;
             try {
                 await navigator.clipboard.writeText(currentResult.value);
-                copyBtn.innerHTML = CHECK_ICON;
-                clearTimeout(copyIconResetTimer);
-                copyIconResetTimer = setTimeout(() => {
-                    copyBtn.innerHTML = COPY_ICON;
-                }, 1500);
+                if (copyBtn) {
+                    copyBtn.innerHTML = CHECK_ICON;
+                    clearTimeout(copyIconResetTimer);
+                    copyIconResetTimer = setTimeout(() => {
+                        copyBtn.innerHTML = COPY_ICON;
+                    }, 1500);
+                }
                 toast('Copied!', true);
             } catch { toast('Copy failed — try selecting manually.'); }
-        });
+        };
+
+        if (copyBtn) copyBtn.addEventListener('click', copyCurrentResult);
+        if (resultEl) resultEl.addEventListener('click', copyCurrentResult);
 
         $('save-button').addEventListener('click', () => {
             if (!currentResult.value) { toast('Nothing to save.'); return; }
