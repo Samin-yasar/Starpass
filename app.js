@@ -18,10 +18,11 @@ const StarpassApp = (() => {
         special:   '!@#$%^&*()-_=+[]{}|;:,.<>?'
     };
 
-    const SCORE_COLORS = ['#f87171','#fb923c','#fbbf24','#a3e635','#34d399'];
     const SCORE_LABELS = ['Very Weak','Weak','Fair','Strong','Very Strong'];
+    const SCORE_CLASSES = ['score-0', 'score-1', 'score-2', 'score-3', 'score-4'];
     const COPY_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
     const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+    const THEME_STORAGE_KEY = 'starpass-theme';
 
     function $(id) { return document.getElementById(id); }
 
@@ -42,6 +43,12 @@ const StarpassApp = (() => {
         const buf = new Uint32Array(1);
         do { crypto.getRandomValues(buf); } while (buf[0] >= cap);
         return buf[0] % max;
+    }
+
+    function applyScoreClass(el, score) {
+        if (!el) return;
+        SCORE_CLASSES.forEach(cls => el.classList.remove(cls));
+        el.classList.add(SCORE_CLASSES[score]);
     }
 
     function shuffle(arr) {
@@ -162,15 +169,13 @@ const StarpassApp = (() => {
 
             const result = zxcvbn(password);
             const score  = result.score; // 0–4
-            const pct    = Math.round((score + 1) / 5 * 100); // 20–100%
-
-            barFill.style.width      = pct + '%';
-            barFill.style.background = SCORE_COLORS[score];
+            const pct = Math.round((score + 1) / 5 * 100); // 20–100%
+            applyScoreClass(barFill, score);
             barFill.setAttribute('aria-valuenow', String(pct));
 
             if (labelEl) {
-                labelEl.textContent  = SCORE_LABELS[score];
-                labelEl.style.color  = SCORE_COLORS[score];
+                labelEl.textContent = SCORE_LABELS[score];
+                applyScoreClass(labelEl, score);
             }
 
             const rawSeconds = result.crack_times_seconds.offline_fast_hashing_1e10_per_second;
@@ -253,6 +258,7 @@ const StarpassApp = (() => {
 
     // ── Init ──────────────────────────────────────────────────────────────────
     function init() {
+        setupThemeToggle();
         setupForms();
         setupTabs();
         setupOutputButtons();
@@ -288,20 +294,27 @@ const StarpassApp = (() => {
 
     function setupOutputButtons() {
         const copyBtn = $('copy-button');
+        const resultEl = $('result');
         let copyIconResetTimer = null;
+        if (resultEl) resultEl.setAttribute('title', 'Tap to copy');
 
-        if (copyBtn) copyBtn.addEventListener('click', async () => {
+        const copyCurrentResult = async () => {
             if (!currentResult.value) return;
             try {
                 await navigator.clipboard.writeText(currentResult.value);
-                copyBtn.innerHTML = CHECK_ICON;
-                clearTimeout(copyIconResetTimer);
-                copyIconResetTimer = setTimeout(() => {
-                    copyBtn.innerHTML = COPY_ICON;
-                }, 1500);
+                if (copyBtn) {
+                    copyBtn.innerHTML = CHECK_ICON;
+                    clearTimeout(copyIconResetTimer);
+                    copyIconResetTimer = setTimeout(() => {
+                        copyBtn.innerHTML = COPY_ICON;
+                    }, 1500);
+                }
                 toast('Copied!', true);
             } catch { toast('Copy failed — try selecting manually.'); }
-        });
+        };
+
+        if (copyBtn) copyBtn.addEventListener('click', copyCurrentResult);
+        if (resultEl) resultEl.addEventListener('click', copyCurrentResult);
 
         $('save-button').addEventListener('click', () => {
             if (!currentResult.value) { toast('Nothing to save.'); return; }
@@ -352,6 +365,38 @@ const StarpassApp = (() => {
             const sub  = encodeURIComponent('Starpass Password Generator');
             const body = encodeURIComponent(`Check this out:\n${location.href}`);
             location.href = `mailto:?subject=${sub}&body=${body}`;
+        });
+    }
+
+    function setupThemeToggle() {
+        const toggleBtn = $('theme-toggle-button');
+        const root = document.documentElement;
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (!toggleBtn || !root) return;
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        const initialTheme = storedTheme || (prefersDark ? 'dark' : 'light');
+
+        function applyTheme(theme) {
+            root.setAttribute('data-theme', theme);
+            const isDark = theme === 'dark';
+            toggleBtn.setAttribute('aria-pressed', String(!isDark));
+            const label = isDark ? 'Switch to light theme' : 'Switch to dark theme';
+            toggleBtn.setAttribute('aria-label', label);
+            toggleBtn.setAttribute('title', label);
+            if (themeMeta) {
+                themeMeta.setAttribute('content', isDark ? '#0a0a0f' : '#f4f6fb');
+            }
+        }
+
+        applyTheme(initialTheme);
+
+        toggleBtn.addEventListener('click', () => {
+            const current = root.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(THEME_STORAGE_KEY, next);
+            applyTheme(next);
         });
     }
 
