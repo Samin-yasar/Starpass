@@ -296,6 +296,7 @@ const StarpassApp = (() => {
         const copyBtn = $('copy-button');
         const resultEl = $('result');
         let copyIconResetTimer = null;
+        if (resultEl) resultEl.setAttribute('title', 'Tap to copy');
 
         const copyCurrentResult = async () => {
             if (!currentResult.value) return;
@@ -373,7 +374,7 @@ const StarpassApp = (() => {
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (!toggleBtn || !root) return;
 
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
         const initialTheme = storedTheme || (prefersDark ? 'dark' : 'light');
 
