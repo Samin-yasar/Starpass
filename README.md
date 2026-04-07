@@ -20,7 +20,7 @@ Starpass uses the [**zxcvbn**](https://github.com/dropbox/zxcvbn) library for pa
   - Adjustable length (default: 10 characters).
   - Customizable word count (default: 3 words).
   - Options for lowercase or appending numbers.
-- **Strength Analysis**: Evaluate credential strength using zxcvbn, which assesses patterns, common words, and entropy (in development).[](https://github.com/dropbox/zxcvbn)[](https://dev.to/tooleroid/password-strength-testing-with-zxcvbn-a-deep-dive-into-modern-password-security-2hl8)
+- **Strength Analysis**: Evaluate credential strength using zxcvbn, which assesses patterns, common words, and entropy.
 - **Zero-Knowledge Architecture**: All processing occurs locally, with no cookies, tracking, or analytics.
 - **Progressive Web App (PWA)**: Install for offline use via supported browsers (e.g., Chrome, Edge).
 - **Theme Support**: Toggle between standard and high-contrast themes.
@@ -31,7 +31,7 @@ Starpass uses the [**zxcvbn**](https://github.com/dropbox/zxcvbn) library for pa
 Starpass Generator is a browser-based application that can be used online or installed as a PWA for offline access.
 
 ### Using Online
-1. Visit the Starpass Generator at [https://github.com/Samin-yasar/Starpass](https://github.com/Samin-yasar/Starpass) (update with actual hosted URL if available).
+1. Visit the Starpass Generator at [https://starpass.samin-yasar.dev](https://starpass.samin-yasar.dev) (update with actual hosted URL if available).
 2. Use the interface to generate passwords, passphrases, or usernames.
 
 ### Installing as a PWA
@@ -58,7 +58,7 @@ Starpass Generator is a browser-based application that can be used online or ins
    ```
 5. Access at `http://localhost:8000`.
 
-> **Note**: The EFF Long Wordlist is included in the repository (`policy/eff_large_wordlist.txt`) for passphrase generation.[](https://www.eff.org/it/deeplinks/2016/07/new-wordlists-random-passphrases)
+> **Note**: The EFF Long Wordlist is included in the repository (`asset/eff_large_wordlist.txt`) for passphrase generation.[](https://www.eff.org/it/deeplinks/2016/07/new-wordlists-random-passphrases)
 
 ## Usage
 
@@ -124,15 +124,9 @@ Starpass Generator is licensed under the [GNU General Public License Version 3 (
 ## Support
 
 For questions, bug reports, or feedback, contact:
-- **Email**: [samin.rash525@silomails.com](mailto:samin.rash525@silomails.com)
-- **Contact Form**: [samin-yasar.github.io/#contact](samin-yasar.github.io/#contact)
+- **Email**: [contact@samin-yasar.dev](mailto:contact@samin-yasar.dev)
+- **Contact Form**: [samin-yasar.dev/#contact](samin-yasar.dev/#contact)
 - **GitHub Issues**: [https://github.com/Samin-yasar/Starpass/issues](https://github.com/Samin-yasar/Starpass/issues)
-- **Post**:
-  ```
-  Samin Yasar
-  Starpass Generator Developer
-  Dhaka, Bangladesh
-  ```
 
 ## Roadmap
 
@@ -144,7 +138,7 @@ For questions, bug reports, or feedback, contact:
 
 ## Acknowledgments
 
-Developed by [Samin Yasar](https://github.com/Samin-yasar) as a community-driven, not-for-profit project. Thanks to:
+Developed by [Samin Yasar](https://samin-yasar.dev/) as a community-driven, not-for-profit project. Thanks to:
 - [Dropbox](https://github.com/dropbox/zxcvbn) for the zxcvbn library.
 - [Electronic Frontier Foundation (EFF)](https://www.eff.org) for the Long Wordlist.
 - Contributors and the open-source community for supporting secure credential generation.
