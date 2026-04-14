@@ -85,7 +85,10 @@ const StarpassApp = (() => {
         const adjectives = uniqueWords.filter(w => ADJECTIVE_HINTS.some(s => w.endsWith(s)));
         const verbs = uniqueWords.filter(w => VERB_HINTS.some(s => w.endsWith(s)));
         const connectors = uniqueWords.filter(w => ['and', 'over', 'under', 'across', 'above', 'beyond', 'inside', 'outside', 'around', 'through'].includes(w));
-        const nouns = uniqueWords.filter(w => !adjectives.includes(w) && !verbs.includes(w) && !connectors.includes(w));
+        const adjectiveSet = new Set(adjectives);
+        const verbSet = new Set(verbs);
+        const connectorSet = new Set(connectors);
+        const nouns = uniqueWords.filter(w => !adjectiveSet.has(w) && !verbSet.has(w) && !connectorSet.has(w));
 
         return {
             version: 2,
