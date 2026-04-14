@@ -28,6 +28,7 @@ const StarpassApp = (() => {
     const MAX_USERNAME_BUILD_ATTEMPTS = 220;
     const NUMBER_SUFFIX_MAX = 100;
     const NUMBER_SUFFIX_LENGTH = 2;
+    const VALID_WORD_REGEX = /^[a-z]{3,}$/;
 
     function $(id) { return document.getElementById(id); }
 
@@ -67,7 +68,7 @@ const StarpassApp = (() => {
     function buildStructuredWordData(words) {
         const uniqueWords = [...new Set((Array.isArray(words) ? words : [])
             .map(w => String(w || '').trim().toLowerCase())
-            .filter(w => /^[a-z]{3,}$/.test(w)))];
+            .filter(w => VALID_WORD_REGEX.test(w)))];
 
         const lengthBuckets = {};
         uniqueWords.forEach(word => {
@@ -110,14 +111,14 @@ const StarpassApp = (() => {
 
         const allWords = [...new Set((raw.allWords || [])
             .map(w => String(w || '').trim().toLowerCase())
-            .filter(w => /^[a-z]{3,}$/.test(w)))];
+            .filter(w => VALID_WORD_REGEX.test(w)))];
 
         const lengthBuckets = {};
         Object.entries(raw.lengthBuckets || {}).forEach(([k, words]) => {
             const key = String(parseInt(k, 10));
             const clean = [...new Set((Array.isArray(words) ? words : [])
                 .map(w => String(w || '').trim().toLowerCase())
-                .filter(w => /^[a-z]{3,}$/.test(w)))];
+                .filter(w => VALID_WORD_REGEX.test(w)))];
             if (clean.length) lengthBuckets[key] = clean;
         });
 
@@ -131,10 +132,10 @@ const StarpassApp = (() => {
 
         const semantic = raw.semanticCategories || {};
         const semanticCategories = {
-            adjectives: [...new Set((semantic.adjectives || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))],
-            nouns: [...new Set((semantic.nouns || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))],
-            verbs: [...new Set((semantic.verbs || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))],
-            connectors: [...new Set((semantic.connectors || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))]
+            adjectives: [...new Set((semantic.adjectives || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))],
+            nouns: [...new Set((semantic.nouns || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))],
+            verbs: [...new Set((semantic.verbs || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))],
+            connectors: [...new Set((semantic.connectors || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))]
         };
 
         if (!semanticCategories.nouns.length) semanticCategories.nouns = allWords.slice();
@@ -217,7 +218,7 @@ const StarpassApp = (() => {
         return roles.slice(0, wordCount);
     }
 
-    function buildUsernameByExactLength(targetLength) {
+    function buildExactLengthUsername(targetLength) {
         const configuredTemplates = (wordData?.templates?.username && wordData.templates.username.length)
             ? wordData.templates.username
             : [
@@ -236,7 +237,7 @@ const StarpassApp = (() => {
 
         const availableLengths = Object.keys((wordData && wordData.lengthBuckets) || {})
             .map(n => parseInt(n, 10))
-            .filter(n => Number.isFinite(n) && n >= 3 && n <= 12)
+            .filter(n => Number.isFinite(n) && n >= MIN_WORD_LENGTH && n <= MAX_BUCKET_WORD_LENGTH)
             .sort((a, b) => a - b);
         if (!availableLengths.length) return null;
 
@@ -695,7 +696,7 @@ const StarpassApp = (() => {
             return;
         }
 
-        const words = buildUsernameByExactLength(targetLength);
+        const words = buildExactLengthUsername(targetLength);
         if (!words) {
             toast('Could not build a valid username at that exact length. Try another length.');
             return;
