@@ -23,6 +23,9 @@ const StarpassApp = (() => {
     const COPY_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
     const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
     const THEME_STORAGE_KEY = 'starpass-theme';
+    // Types that contain generated secrets — clipboard is cleared after CLIPBOARD_CLEAR_MS
+    const SENSITIVE_TYPES      = ['password', 'passphrase', 'username'];
+    const CLIPBOARD_CLEAR_MS   = 30_000; // 30 seconds
     const MIN_WORD_LENGTH = 3;
     const MAX_WORD_LENGTH_FOR_BUCKETING = 12; // words with length 12+ are grouped into bucket "12"
     const MAX_USERNAME_BUILD_ATTEMPTS = 220;
@@ -536,6 +539,7 @@ const StarpassApp = (() => {
 
         const copyCurrentResult = async () => {
             if (!currentResult.value) return;
+            const isSensitive = SENSITIVE_TYPES.includes(currentResult.type);
             try {
                 await navigator.clipboard.writeText(currentResult.value);
                 if (copyBtn) {
@@ -545,7 +549,13 @@ const StarpassApp = (() => {
                         copyBtn.innerHTML = COPY_ICON;
                     }, 1500);
                 }
-                toast('Copied!', true);
+                if (isSensitive) {
+                    toast('Copied! Clipboard will be cleared in 30 s.', true);
+                    // Best-effort: overwrite clipboard with empty string after 30 seconds
+                    setTimeout(() => { navigator.clipboard.writeText('').catch(() => {}); }, CLIPBOARD_CLEAR_MS);
+                } else {
+                    toast('Copied!', true);
+                }
             } catch { toast('Copy failed — try selecting manually.'); }
         };
 
