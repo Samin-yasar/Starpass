@@ -28,6 +28,7 @@ const PasswordHistoryManager = (() => {
     const VERIFY_PLAIN = 'starpass-v2-verify';
     const EXPAND_KEY   = 'starpass-history-expanded';
     const AUTO_HIDE_MS = 2 * 60 * 1000; // auto-hide revealed values after 2 minutes
+    const CLIPBOARD_CLEAR_MS = 30_000;  // best-effort clipboard clear after copy
 
     let db = null;
 
@@ -308,22 +309,63 @@ const PasswordHistoryManager = (() => {
                 const el = document.createElement('div');
                 el.className = 'history-item';
                 el.setAttribute('role', 'listitem');
-                el.innerHTML = `
-                    <span class="history-badge">${esc(item.type)}</span>
-                    <span class="history-meta">
-                        <span class="history-value" data-shown="false" data-id="${item.id}" title="Reveal to copy" role="button" tabindex="-1">••••••••</span>
-                        <span class="history-date">${new Date(item.timestamp).toLocaleDateString()}</span>
-                    </span>
-                    <button class="history-action copy-btn" data-id="${item.id}" title="Copy value" aria-label="Copy value" disabled aria-disabled="true">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    </button>
-                    <button class="history-action view-btn" data-id="${item.id}" title="Reveal / hide" aria-label="Reveal or hide">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                    <button class="history-action delete-btn" data-id="${item.id}" title="Delete entry" aria-label="Delete entry">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                `;
+
+                // Badge — textContent prevents any injection from stored type strings
+                const badge = document.createElement('span');
+                badge.className = 'history-badge';
+                badge.textContent = item.type;
+
+                // Meta: value placeholder + date
+                const meta = document.createElement('span');
+                meta.className = 'history-meta';
+
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'history-value';
+                valueSpan.dataset.shown = 'false';
+                valueSpan.dataset.id = item.id;
+                valueSpan.title = 'Reveal to copy';
+                valueSpan.setAttribute('role', 'button');
+                valueSpan.tabIndex = -1;
+                valueSpan.textContent = '••••••••';
+
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'history-date';
+                dateSpan.textContent = new Date(item.timestamp).toLocaleDateString();
+
+                meta.appendChild(valueSpan);
+                meta.appendChild(dateSpan);
+
+                // Copy button — SVG is static markup, no user data
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'history-action copy-btn';
+                copyBtn.dataset.id = item.id;
+                copyBtn.title = 'Copy value';
+                copyBtn.setAttribute('aria-label', 'Copy value');
+                copyBtn.disabled = true;
+                copyBtn.setAttribute('aria-disabled', 'true');
+                copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+                // View button
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'history-action view-btn';
+                viewBtn.dataset.id = item.id;
+                viewBtn.title = 'Reveal / hide';
+                viewBtn.setAttribute('aria-label', 'Reveal or hide');
+                viewBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'history-action delete-btn';
+                deleteBtn.dataset.id = item.id;
+                deleteBtn.title = 'Delete entry';
+                deleteBtn.setAttribute('aria-label', 'Delete entry');
+                deleteBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+                el.appendChild(badge);
+                el.appendChild(meta);
+                el.appendChild(copyBtn);
+                el.appendChild(viewBtn);
+                el.appendChild(deleteBtn);
                 list.appendChild(el);
             });
         } catch (err) {
@@ -349,12 +391,16 @@ const PasswordHistoryManager = (() => {
 
     // ── Copy a revealed value to clipboard ─────────────────────────────────────
     async function copyValue(valueEl) {
+        // Defense-in-depth: only copy when the value is actually revealed
+        if (valueEl.dataset.shown !== 'true') return;
         const text = valueEl.textContent;
         try {
             await navigator.clipboard.writeText(text);
             valueEl.dataset.copied = 'true';
             setTimeout(() => { delete valueEl.dataset.copied; }, 1200);
-            toast('Copied!', true);
+            toast('Copied! Clipboard will be cleared in 30 s.', true);
+            // Best-effort: overwrite clipboard with empty string after 30 seconds
+            setTimeout(() => { navigator.clipboard.writeText('').catch(() => {}); }, CLIPBOARD_CLEAR_MS);
         } catch {
             toast('Copy failed — try selecting manually.');
         }
@@ -466,12 +512,6 @@ const PasswordHistoryManager = (() => {
             tx2.objectStore(META_STORE).clear();
             tx2.oncomplete = () => { toast('Vault cleared.', true); loadAndDisplay(); };
         };
-    }
-
-    function esc(s) {
-        return String(s)
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     // ── Init ───────────────────────────────────────────────────────────────────
