@@ -7,7 +7,7 @@
  *  - SVGs in buttons get pointer-events:none via aria-hidden pattern
  */
 const StarpassApp = (() => {
-    let wordList      = [];
+    let wordData      = null;
     let zxcvbnPromise = null;
     let currentResult = { value: '', type: '' };
 
@@ -59,19 +59,176 @@ const StarpassApp = (() => {
         return arr;
     }
 
+    function buildStructuredWordData(words) {
+        const uniqueWords = [...new Set((Array.isArray(words) ? words : [])
+            .map(w => String(w || '').trim().toLowerCase())
+            .filter(w => /^[a-z]{3,}$/.test(w)))];
+
+        const lengthBuckets = {};
+        uniqueWords.forEach(word => {
+            const key = String(Math.min(word.length, 12));
+            if (!lengthBuckets[key]) lengthBuckets[key] = [];
+            lengthBuckets[key].push(word);
+        });
+
+        const ADJECTIVE_HINTS = ['able', 'al', 'ful', 'ic', 'ive', 'less', 'ous', 'y'];
+        const VERB_HINTS = ['ate', 'en', 'ify', 'ing', 'ize', 'ise', 'ed'];
+
+        const adjectives = uniqueWords.filter(w => ADJECTIVE_HINTS.some(s => w.endsWith(s)));
+        const verbs = uniqueWords.filter(w => VERB_HINTS.some(s => w.endsWith(s)));
+        const connectors = uniqueWords.filter(w => ['and', 'over', 'under', 'across', 'above', 'beyond', 'inside', 'outside', 'around', 'through'].includes(w));
+        const nouns = uniqueWords.filter(w => !adjectives.includes(w) && !verbs.includes(w));
+
+        return {
+            version: 2,
+            allWords: uniqueWords,
+            lengthBuckets,
+            semanticCategories: {
+                adjectives,
+                nouns,
+                verbs,
+                connectors
+            },
+            templates: {
+                username: [
+                    ['adjective', 'noun'],
+                    ['adjective', 'noun', 'noun'],
+                    ['noun', 'verb', 'noun'],
+                    ['adjective', 'adjective', 'noun']
+                ]
+            }
+        };
+    }
+
+    function normalizeWordData(raw) {
+        if (!raw || Array.isArray(raw)) return buildStructuredWordData(raw || []);
+
+        const allWords = [...new Set((raw.allWords || [])
+            .map(w => String(w || '').trim().toLowerCase())
+            .filter(w => /^[a-z]{3,}$/.test(w)))];
+
+        const lengthBuckets = {};
+        Object.entries(raw.lengthBuckets || {}).forEach(([k, words]) => {
+            const key = String(parseInt(k, 10));
+            const clean = [...new Set((Array.isArray(words) ? words : [])
+                .map(w => String(w || '').trim().toLowerCase())
+                .filter(w => /^[a-z]{3,}$/.test(w)))];
+            if (clean.length) lengthBuckets[key] = clean;
+        });
+
+        if (!Object.keys(lengthBuckets).length && allWords.length) {
+            allWords.forEach(word => {
+                const key = String(Math.min(word.length, 12));
+                if (!lengthBuckets[key]) lengthBuckets[key] = [];
+                lengthBuckets[key].push(word);
+            });
+        }
+
+        const semantic = raw.semanticCategories || {};
+        const semanticCategories = {
+            adjectives: [...new Set((semantic.adjectives || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))],
+            nouns: [...new Set((semantic.nouns || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))],
+            verbs: [...new Set((semantic.verbs || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))],
+            connectors: [...new Set((semantic.connectors || []).map(w => String(w || '').toLowerCase()).filter(w => /^[a-z]{3,}$/.test(w)))]
+        };
+
+        if (!semanticCategories.nouns.length) semanticCategories.nouns = allWords.slice();
+        if (!semanticCategories.adjectives.length) semanticCategories.adjectives = allWords.slice();
+        if (!semanticCategories.verbs.length) semanticCategories.verbs = allWords.slice();
+        if (!semanticCategories.connectors.length) semanticCategories.connectors = ['and', 'over', 'under', 'beyond'];
+
+        return {
+            version: raw.version || 2,
+            allWords,
+            lengthBuckets,
+            semanticCategories,
+            templates: raw.templates || {}
+        };
+    }
+
     async function loadWordList() {
-        if (wordList.length > 0) return true;
+        if (wordData && wordData.allWords && wordData.allWords.length > 0) return true;
         try {
             const r = await fetch('src/common_wordslist.json');
             if (!r.ok) throw new Error('fetch failed');
-            wordList = await r.json();
+            wordData = normalizeWordData(await r.json());
         } catch {
-            wordList = ['apple','brave','cedar','delta','eagle','frost','grape','haste',
-                        'iris','joust','kneel','lemon','maple','noble','ocean','pearl',
-                        'quest','river','storm','tiger','ultra','vivid','whirl','xenon',
-                        'yacht','zesty','amber','blaze','crisp','dunes'];
+            wordData = buildStructuredWordData([
+                'apple','brave','cedar','delta','eagle','frost','grape','haste',
+                'iris','joust','kneel','lemon','maple','noble','ocean','pearl',
+                'quest','river','storm','tiger','ultra','vivid','whirl','xenon',
+                'yacht','zesty','amber','blaze','crisp','dunes',
+                'gentle','silver','sunset','forest','glimmer','harbor','meadow','thunder',
+                'wander','create','bright','calm','steady','dream'
+            ]);
         }
         return true;
+    }
+
+    function getRolePool(role) {
+        const semantic = (wordData && wordData.semanticCategories) || {};
+        const allWords = (wordData && wordData.allWords) || [];
+        const roleAliases = {
+            adjective: 'adjectives',
+            noun: 'nouns',
+            verb: 'verbs',
+            connector: 'connectors'
+        };
+        const key = roleAliases[role] || role;
+        const pool = semantic[key];
+        return Array.isArray(pool) && pool.length ? pool : allWords;
+    }
+
+    function chooseWord(role, minLength = 3, maxLength = 12) {
+        const pool = getRolePool(role).filter(w => w.length >= minLength && w.length <= maxLength);
+        if (!pool.length) return null;
+        return pool[secureRandom(pool.length)];
+    }
+
+    function getPassphraseRoles(wordCount) {
+        const roles = ['adjective', 'noun'];
+        const cycle = ['verb', 'noun', 'connector', 'adjective'];
+        let i = 0;
+        while (roles.length < wordCount) {
+            roles.push(cycle[i % cycle.length]);
+            i++;
+        }
+        return roles.slice(0, wordCount);
+    }
+
+    function buildUsernameByExactLength(targetLength) {
+        const templates = (wordData?.templates?.username && wordData.templates.username.length)
+            ? wordData.templates.username
+            : [
+                ['adjective', 'noun'],
+                ['adjective', 'noun', 'noun'],
+                ['noun', 'verb', 'noun'],
+                ['adjective', 'adjective', 'noun']
+            ];
+
+        for (let attempt = 0; attempt < 300; attempt++) {
+            const roles = templates[secureRandom(templates.length)];
+            if (!roles || !roles.length) continue;
+
+            const words = [];
+            let remaining = targetLength;
+            let failed = false;
+
+            for (let i = 0; i < roles.length; i++) {
+                const slotsLeft = roles.length - i - 1;
+                const minReserved = slotsLeft * 3;
+                const maxLen = remaining - minReserved;
+                if (maxLen < 3) { failed = true; break; }
+
+                const word = chooseWord(roles[i], 3, Math.min(12, maxLen));
+                if (!word) { failed = true; break; }
+                words.push(word);
+                remaining -= word.length;
+            }
+
+            if (!failed && remaining === 0) return words;
+        }
+        return null;
     }
 
     async function loadZxcvbn() {
@@ -464,8 +621,9 @@ const StarpassApp = (() => {
         const capitalize = $('capitalize-words').checked;
         const withNumber = $('include-number').checked;
 
-        const words = Array.from({ length: wordCount }, () => {
-            let w = wordList[secureRandom(wordList.length)];
+        const roles = getPassphraseRoles(wordCount);
+        const words = roles.map(role => {
+            const w = chooseWord(role, 3, 12) || chooseWord('nouns', 3, 12) || 'star';
             return capitalize ? w[0].toUpperCase() + w.slice(1) : w;
         });
 
@@ -480,14 +638,20 @@ const StarpassApp = (() => {
         const withNumber = $('include-number-username').checked;
         const allLower   = $('all-lowercase').checked;
 
-        let u = '';
-        while (u.length < length) u += wordList[secureRandom(wordList.length)];
-        u = u.slice(0, length);
-
-        if (withNumber) {
-            const num = String(secureRandom(100)).padStart(2, '0');
-            u = u.slice(0, length - num.length) + num;
+        const suffix = withNumber ? String(secureRandom(100)).padStart(2, '0') : '';
+        const targetLength = length - suffix.length;
+        if (targetLength < 6) {
+            toast('Increase username length to support selected options.');
+            return;
         }
+
+        const words = buildUsernameByExactLength(targetLength);
+        if (!words) {
+            toast('Could not build a valid username at that exact length. Try another length.');
+            return;
+        }
+
+        let u = words.join('') + suffix;
         if (allLower) u = u.toLowerCase();
         setResult(u, 'username');
     }

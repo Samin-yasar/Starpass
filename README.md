@@ -4,7 +4,7 @@
 
 Starpass Generator is a **not-for-profit, open-source** web application designed to generate secure passwords, passphrases, and usernames locally in your browser. Built with a **zero-knowledge architecture**, Starpass ensures no data is collected, stored, or transmitted, providing a privacy-focused solution for credential generation. It operates as a Progressive Web App (PWA) for offline use and is licensed under the [GNU General Public License Version 3 (GPLv3)](https://www.gnu.org/licenses/gpl-3.0).
 
-Starpass uses the [**zxcvbn**](https://github.com/dropbox/zxcvbn) library for password strength assessment and the [**EFF Long Wordlist**](https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt) (7,776 words) for passphrase generation, ensuring secure and usable credentials.
+Starpass uses the [**zxcvbn**](https://github.com/dropbox/zxcvbn) library for password strength assessment and a structured local word dataset (`src/common_wordslist.json`) for passphrase/username generation. The dataset is categorized by word length and semantic roles (e.g., adjectives, nouns, verbs) to improve output quality and readability.
 
 ## Features
 
@@ -12,13 +12,13 @@ Starpass uses the [**zxcvbn**](https://github.com/dropbox/zxcvbn) library for pa
   - Adjustable length (default: 16 characters).
   - Options for lowercase letters, uppercase letters, numbers, and special characters.
   - Exclude ambiguous characters (e.g., `l`, `I`, `O`, `()`, `[]`, `{}`).
-- **Passphrase Generation**: Generate secure passphrases using the EFF Long Wordlist with:
+- **Passphrase Generation**: Generate secure passphrases using role-based word combinations with:
   - Customizable word count (default: 4 words).
   - Choice of separators (hyphen, dot, underscore, space, or none).
   - Options to capitalize words or append numbers/special characters.
-- **Username Generation**: Combine words to create usernames with:
-  - Adjustable length (default: 10 characters).
-  - Customizable word count (default: 3 words).
+- **Username Generation**: Combine complete words to create readable usernames with:
+  - Adjustable target length (default: 12 characters).
+  - Role-based templates (e.g., adjective+noun, noun+verb+noun) for valid combinations.
   - Options for lowercase or appending numbers.
 - **Strength Analysis**: Evaluate credential strength using zxcvbn, which assesses patterns, common words, and entropy.
 - **Zero-Knowledge Architecture**: All processing occurs locally, with no cookies, tracking, or analytics.
@@ -58,7 +58,7 @@ Starpass Generator is a browser-based application that can be used online or ins
    ```
 5. Access at `http://localhost:8000`.
 
-> **Note**: The EFF Long Wordlist is included in the repository (`src/eff_large_wordlist.txt`) for passphrase generation.[](https://www.eff.org/it/deeplinks/2016/07/new-wordlists-random-passphrases)
+> **Note**: The generator uses `src/common_wordslist.json`, which now includes categorized word-length buckets and semantic word groups used by both passphrase and username generation.
 
 ## Usage
 
@@ -67,7 +67,7 @@ Starpass Generator is a browser-based application that can be used online or ins
    - Optionally exclude ambiguous characters.
    - Click "Generate Password" to create and view the result.
 2. **Generate a Passphrase**:
-   - Choose the number of words (from the EFF Long Wordlist) and separator type.
+   - Choose the number of words and separator type.
    - Enable options like capitalization or appending numbers/special characters.
    - Click "Generate Passphrase" to view the result.
 3. **Generate a Username**:
@@ -104,7 +104,10 @@ Additionally, review the [Disclaimer](policy/disclaimer.html) for important info
 ## Technical Details
 
 - **Password Strength Assessment**: Starpass integrates the [zxcvbn](https://github.com/dropbox/zxcvbn) library (MIT-licensed) for realistic password strength estimation. zxcvbn evaluates passwords against common patterns (e.g., dictionary words, keyboard patterns, repetitions) and provides a score (0-4) with feedback on crack time and suggestions for improvement.[](https://github.com/dropbox/zxcvbn)[](https://dev.to/tooleroid/password-strength-testing-with-zxcvbn-a-deep-dive-into-modern-password-security-2hl8)
-- **Passphrase Wordlist**: Passphrases are generated using the [EFF Long Wordlist](https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt), containing 7,776 words optimized for memorability and usability (average word length: 7.0 characters). Each word provides ~12.9 bits of entropy, with a six-word passphrase yielding ~77 bits of entropy, suitable for high-security applications.[](https://www.eff.org/it/deeplinks/2016/07/new-wordlists-random-passphrases)
+- **Passphrase and Username Word Data**: `src/common_wordslist.json` is organized into multiple layers:
+  - **Length buckets** (3-letter, 4-letter, 5-letter, 6-letter, and more) for length-aware generation.
+  - **Semantic categories** (adjectives, nouns, verbs, connectors) for meaningful combinations.
+  - **Role templates** used to build coherent passphrases and readable usernames.
 
 ## Contributing
 
