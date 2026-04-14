@@ -105,7 +105,7 @@ Additionally, review the [Disclaimer](policy/disclaimer.html) for important info
 
 - **Password Strength Assessment**: Starpass integrates the [zxcvbn](https://github.com/dropbox/zxcvbn) library (MIT-licensed) for realistic password strength estimation. zxcvbn evaluates passwords against common patterns (e.g., dictionary words, keyboard patterns, repetitions) and provides a score (0-4) with feedback on crack time and suggestions for improvement.[](https://github.com/dropbox/zxcvbn)[](https://dev.to/tooleroid/password-strength-testing-with-zxcvbn-a-deep-dive-into-modern-password-security-2hl8)
 - **Passphrase and Username Word Data**: `src/common_wordslist.json` is organized into multiple layers:
-  - **Length buckets** (3-letter, 4-letter, 5-letter, 6-letter, and more) for length-aware generation.
+  - **Length buckets** (3-character through 12+ character words) for length-aware generation.
   - **Semantic categories** (adjectives, nouns, verbs, connectors) for meaningful combinations.
   - **Role templates** used to build coherent passphrases and readable usernames.
 

@@ -24,7 +24,7 @@ const StarpassApp = (() => {
     const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
     const THEME_STORAGE_KEY = 'starpass-theme';
     const MIN_WORD_LENGTH = 3;
-    const MAX_WORD_LENGTH_FOR_BUCKETING = 12; // words longer than this are capped into bucket "12"
+    const MAX_WORD_LENGTH_FOR_BUCKETING = 12; // words with length 12+ are grouped into bucket "12"
     const MAX_USERNAME_BUILD_ATTEMPTS = 220;
     const NUMBER_SUFFIX_MAX = 100;
     const NUMBER_SUFFIX_LENGTH = 2;
@@ -79,13 +79,13 @@ const StarpassApp = (() => {
         });
 
         // Best-effort fallback heuristics only used when structured semantic categories are unavailable.
-        const ADJECTIVE_HINTS = ['able', 'al', 'ful', 'ic', 'ive', 'less', 'ous', 'y'];
+        const ADJECTIVE_HINTS = ['able', 'ful', 'ial', 'ical', 'ic', 'ive', 'less', 'ous', 'y'];
         const VERB_HINTS = ['ate', 'en', 'ify', 'ing', 'ize', 'ise', 'ed'];
 
         const adjectives = uniqueWords.filter(w => ADJECTIVE_HINTS.some(s => w.endsWith(s)));
         const verbs = uniqueWords.filter(w => VERB_HINTS.some(s => w.endsWith(s)));
         const connectors = uniqueWords.filter(w => ['and', 'over', 'under', 'across', 'above', 'beyond', 'inside', 'outside', 'around', 'through'].includes(w));
-        const nouns = uniqueWords.filter(w => !adjectives.includes(w) && !verbs.includes(w));
+        const nouns = uniqueWords.filter(w => !adjectives.includes(w) && !verbs.includes(w) && !connectors.includes(w));
 
         return {
             version: 2,
@@ -695,13 +695,13 @@ const StarpassApp = (() => {
         const suffix = withNumber ? String(secureRandom(NUMBER_SUFFIX_MAX)).padStart(NUMBER_SUFFIX_LENGTH, '0') : '';
         const targetLength = length - suffix.length;
         if (targetLength < 6) {
-            toast('Increase username length to support selected options.');
+            toast('Username length must be at least 8 when number suffix is enabled.');
             return;
         }
 
         const words = buildExactLengthUsername(targetLength);
         if (!words) {
-            toast('Could not build a valid username at that exact length. Try another length.');
+            toast('No valid word combination found at this exact length. Try ±1–2 characters.');
             return;
         }
 
