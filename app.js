@@ -24,11 +24,12 @@ const StarpassApp = (() => {
     const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
     const THEME_STORAGE_KEY = 'starpass-theme';
     const MIN_WORD_LENGTH = 3;
-    const MAX_WORD_LENGTH_FOR_BUCKETING = 12; // words longer than this are grouped into the top bucket
+    const MAX_WORD_LENGTH_FOR_BUCKETING = 12; // words longer than this are capped into bucket "12"
     const MAX_USERNAME_BUILD_ATTEMPTS = 220;
     const NUMBER_SUFFIX_MAX = 100;
     const NUMBER_SUFFIX_LENGTH = 2;
     const VALID_WORD_REGEX = /^[a-z]{3,}$/;
+    const PASSPHRASE_FALLBACK_WORD = 'star';
 
     function $(id) { return document.getElementById(id); }
 
@@ -77,6 +78,7 @@ const StarpassApp = (() => {
             lengthBuckets[key].push(word);
         });
 
+        // Best-effort fallback heuristics only used when structured semantic categories are unavailable.
         const ADJECTIVE_HINTS = ['able', 'al', 'ful', 'ic', 'ive', 'less', 'ous', 'y'];
         const VERB_HINTS = ['ate', 'en', 'ify', 'ing', 'ize', 'ise', 'ed'];
 
@@ -241,7 +243,7 @@ const StarpassApp = (() => {
             .sort((a, b) => a - b);
         if (!availableLengths.length) return null;
 
-        // Bounded retries keep UI generation responsive while still finding exact-length combinations reliably.
+        // Bounded retries (max 220 attempts) keep UI generation responsive while still finding exact-length combinations reliably.
         for (let attempt = 0; attempt < MAX_USERNAME_BUILD_ATTEMPTS; attempt++) {
             const roles = templates[secureRandom(templates.length)];
             if (!roles || !roles.length) continue;
@@ -675,7 +677,7 @@ const StarpassApp = (() => {
 
         const roles = getPassphraseRoles(wordCount);
         const words = roles.map(role => {
-            const w = chooseWord(role, MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || chooseWord('noun', MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || 'star';
+            const w = chooseWord(role, MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || chooseWord('noun', MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || PASSPHRASE_FALLBACK_WORD;
             return capitalize ? w[0].toUpperCase() + w.slice(1) : w;
         });
 
