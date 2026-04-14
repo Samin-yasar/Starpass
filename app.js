@@ -24,7 +24,7 @@ const StarpassApp = (() => {
     const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
     const THEME_STORAGE_KEY = 'starpass-theme';
     const MIN_WORD_LENGTH = 3;
-    const MAX_BUCKET_WORD_LENGTH = 12;
+    const MAX_WORD_LENGTH_FOR_BUCKETING = 12; // words longer than this are grouped into the top bucket
     const MAX_USERNAME_BUILD_ATTEMPTS = 220;
     const NUMBER_SUFFIX_MAX = 100;
     const NUMBER_SUFFIX_LENGTH = 2;
@@ -72,7 +72,7 @@ const StarpassApp = (() => {
 
         const lengthBuckets = {};
         uniqueWords.forEach(word => {
-            const key = String(Math.min(word.length, MAX_BUCKET_WORD_LENGTH));
+            const key = String(Math.min(word.length, MAX_WORD_LENGTH_FOR_BUCKETING));
             if (!lengthBuckets[key]) lengthBuckets[key] = [];
             lengthBuckets[key].push(word);
         });
@@ -124,7 +124,7 @@ const StarpassApp = (() => {
 
         if (!Object.keys(lengthBuckets).length && allWords.length) {
             allWords.forEach(word => {
-                const key = String(Math.min(word.length, MAX_BUCKET_WORD_LENGTH));
+                const key = String(Math.min(word.length, MAX_WORD_LENGTH_FOR_BUCKETING));
                 if (!lengthBuckets[key]) lengthBuckets[key] = [];
                 lengthBuckets[key].push(word);
             });
@@ -185,7 +185,7 @@ const StarpassApp = (() => {
         return Array.isArray(pool) && pool.length ? pool : allWords;
     }
 
-    function chooseWord(role, minLength = MIN_WORD_LENGTH, maxLength = MAX_BUCKET_WORD_LENGTH) {
+    function chooseWord(role, minLength = MIN_WORD_LENGTH, maxLength = MAX_WORD_LENGTH_FOR_BUCKETING) {
         const pool = getRolePool(role).filter(w => w.length >= minLength && w.length <= maxLength);
         if (!pool.length) return null;
         return pool[secureRandom(pool.length)];
@@ -237,15 +237,16 @@ const StarpassApp = (() => {
 
         const availableLengths = Object.keys((wordData && wordData.lengthBuckets) || {})
             .map(n => parseInt(n, 10))
-            .filter(n => Number.isFinite(n) && n >= MIN_WORD_LENGTH && n <= MAX_BUCKET_WORD_LENGTH)
+            .filter(n => Number.isFinite(n) && n >= MIN_WORD_LENGTH && n <= MAX_WORD_LENGTH_FOR_BUCKETING)
             .sort((a, b) => a - b);
         if (!availableLengths.length) return null;
 
+        // Bounded retries keep UI generation responsive while still finding exact-length combinations reliably.
         for (let attempt = 0; attempt < MAX_USERNAME_BUILD_ATTEMPTS; attempt++) {
             const roles = templates[secureRandom(templates.length)];
             if (!roles || !roles.length) continue;
             const minTotal = roles.length * MIN_WORD_LENGTH;
-            const maxTotal = roles.length * MAX_BUCKET_WORD_LENGTH;
+            const maxTotal = roles.length * MAX_WORD_LENGTH_FOR_BUCKETING;
             if (targetLength < minTotal || targetLength > maxTotal) continue;
 
             const visited = new Set();
@@ -258,9 +259,9 @@ const StarpassApp = (() => {
 
                 const slotsLeft = roles.length - idx - 1;
                 const minReserved = slotsLeft * MIN_WORD_LENGTH;
-                const maxReserved = slotsLeft * MAX_BUCKET_WORD_LENGTH;
+                const maxReserved = slotsLeft * MAX_WORD_LENGTH_FOR_BUCKETING;
                 const minLen = Math.max(MIN_WORD_LENGTH, remaining - maxReserved);
-                const maxLen = Math.min(MAX_BUCKET_WORD_LENGTH, remaining - minReserved);
+                const maxLen = Math.min(MAX_WORD_LENGTH_FOR_BUCKETING, remaining - minReserved);
                 if (minLen > maxLen) return null;
 
                 const lengths = shuffledCopy(availableLengths.filter(n => n >= minLen && n <= maxLen));
@@ -674,7 +675,7 @@ const StarpassApp = (() => {
 
         const roles = getPassphraseRoles(wordCount);
         const words = roles.map(role => {
-            const w = chooseWord(role, MIN_WORD_LENGTH, MAX_BUCKET_WORD_LENGTH) || chooseWord('nouns', MIN_WORD_LENGTH, MAX_BUCKET_WORD_LENGTH) || 'star';
+            const w = chooseWord(role, MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || chooseWord('noun', MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || 'star';
             return capitalize ? w[0].toUpperCase() + w.slice(1) : w;
         });
 

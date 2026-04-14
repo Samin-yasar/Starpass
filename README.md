@@ -17,7 +17,7 @@ Starpass uses the [**zxcvbn**](https://github.com/dropbox/zxcvbn) library for pa
   - Choice of separators (hyphen, dot, underscore, space, or none).
   - Options to capitalize words or append numbers/special characters.
 - **Username Generation**: Combine complete words to create readable usernames with:
-  - Adjustable target length (default: 12 characters).
+  - Exact target length (default: 12 characters).
   - Role-based templates (e.g., adjective+noun, noun+verb+noun) for valid combinations.
   - Options for lowercase or appending numbers.
 - **Strength Analysis**: Evaluate credential strength using zxcvbn, which assesses patterns, common words, and entropy.
