@@ -185,6 +185,22 @@ const StarpassApp = (() => {
         return pool[secureRandom(pool.length)];
     }
 
+    function getWordsForRoleAndLength(role, length) {
+        const rolePool = getRolePool(role).filter(w => w.length === length);
+        if (rolePool.length) return rolePool;
+        const buckets = (wordData && wordData.lengthBuckets) || {};
+        return Array.isArray(buckets[String(length)]) ? buckets[String(length)] : [];
+    }
+
+    function shuffledCopy(arr) {
+        const clone = arr.slice();
+        for (let i = clone.length - 1; i > 0; i--) {
+            const j = secureRandom(i + 1);
+            [clone[i], clone[j]] = [clone[j], clone[i]];
+        }
+        return clone;
+    }
+
     function getPassphraseRoles(wordCount) {
         const roles = ['adjective', 'noun'];
         const cycle = ['verb', 'noun', 'connector', 'adjective'];
@@ -197,7 +213,7 @@ const StarpassApp = (() => {
     }
 
     function buildUsernameByExactLength(targetLength) {
-        const templates = (wordData?.templates?.username && wordData.templates.username.length)
+        const configuredTemplates = (wordData?.templates?.username && wordData.templates.username.length)
             ? wordData.templates.username
             : [
                 ['adjective', 'noun'],
@@ -205,28 +221,57 @@ const StarpassApp = (() => {
                 ['noun', 'verb', 'noun'],
                 ['adjective', 'adjective', 'noun']
             ];
+        const templates = configuredTemplates.concat([
+            ['noun', 'noun'],
+            ['adjective', 'verb'],
+            ['noun', 'verb'],
+            ['adjective', 'noun', 'verb'],
+            ['verb', 'adjective', 'noun']
+        ]);
 
-        for (let attempt = 0; attempt < 300; attempt++) {
+        const availableLengths = Object.keys((wordData && wordData.lengthBuckets) || {})
+            .map(n => parseInt(n, 10))
+            .filter(n => Number.isFinite(n) && n >= 3 && n <= 12)
+            .sort((a, b) => a - b);
+        if (!availableLengths.length) return null;
+
+        for (let attempt = 0; attempt < 220; attempt++) {
             const roles = templates[secureRandom(templates.length)];
             if (!roles || !roles.length) continue;
+            const minTotal = roles.length * 3;
+            const maxTotal = roles.length * 12;
+            if (targetLength < minTotal || targetLength > maxTotal) continue;
 
-            const words = [];
-            let remaining = targetLength;
-            let failed = false;
+            const visited = new Set();
+            const build = (idx, remaining, acc) => {
+                if (idx === roles.length) return remaining === 0 ? acc.slice() : null;
 
-            for (let i = 0; i < roles.length; i++) {
-                const slotsLeft = roles.length - i - 1;
+                const key = `${idx}:${remaining}`;
+                if (visited.has(key)) return null;
+                visited.add(key);
+
+                const slotsLeft = roles.length - idx - 1;
                 const minReserved = slotsLeft * 3;
-                const maxLen = remaining - minReserved;
-                if (maxLen < 3) { failed = true; break; }
+                const maxReserved = slotsLeft * 12;
+                const minLen = Math.max(3, remaining - maxReserved);
+                const maxLen = Math.min(12, remaining - minReserved);
+                if (minLen > maxLen) return null;
 
-                const word = chooseWord(roles[i], 3, Math.min(12, maxLen));
-                if (!word) { failed = true; break; }
-                words.push(word);
-                remaining -= word.length;
-            }
+                const lengths = shuffledCopy(availableLengths.filter(n => n >= minLen && n <= maxLen));
+                for (const len of lengths) {
+                    const candidates = getWordsForRoleAndLength(roles[idx], len);
+                    if (!candidates.length) continue;
+                    const chosen = candidates[secureRandom(candidates.length)];
+                    acc.push(chosen);
+                    const found = build(idx + 1, remaining - len, acc);
+                    if (found) return found;
+                    acc.pop();
+                }
+                return null;
+            };
 
-            if (!failed && remaining === 0) return words;
+            const words = build(0, targetLength, []);
+            if (words) return words;
         }
         return null;
     }
