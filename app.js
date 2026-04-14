@@ -197,10 +197,16 @@ const StarpassApp = (() => {
     }
 
     function getWordsForRoleAndLength(role, length) {
-        const rolePool = getRolePool(role).filter(w => w.length === length);
+        const fullRolePool = getRolePool(role);
+        const rolePool = fullRolePool.filter(w => w.length === length);
         if (rolePool.length) return rolePool;
+
         const buckets = (wordData && wordData.lengthBuckets) || {};
-        return Array.isArray(buckets[String(length)]) ? buckets[String(length)] : [];
+        const bucket = Array.isArray(buckets[String(length)]) ? buckets[String(length)] : [];
+        if (!bucket.length) return [];
+
+        const roleWordSet = new Set(fullRolePool);
+        return bucket.filter(w => roleWordSet.has(w));
     }
 
     function shuffledCopy(arr) {
