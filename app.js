@@ -209,12 +209,27 @@ const StarpassApp = (() => {
         return clone;
     }
 
+    function getConfiguredPassphraseRoleCycle() {
+        const defaultTemplate = ['adjective', 'noun', 'verb', 'noun', 'connector', 'adjective'];
+        const configuredTemplate = wordData?.templates?.passphraseRoleCycle;
+
+        if (!Array.isArray(configuredTemplate) || configuredTemplate.length < 2) {
+            return defaultTemplate;
+        }
+
+        const normalizedTemplate = configuredTemplate.filter(role => typeof role === 'string' && role.trim());
+        return normalizedTemplate.length >= 2 ? normalizedTemplate : defaultTemplate;
+    }
+
     function getPassphraseRoles(wordCount) {
-        const roles = ['adjective', 'noun'];
-        const cycle = ['verb', 'noun', 'connector', 'adjective'];
+        const template = getConfiguredPassphraseRoleCycle();
+        const roles = template.slice(0, Math.min(2, template.length));
+        const cycle = template.slice(2);
+        const fallbackCycle = ['verb', 'noun', 'connector', 'adjective'];
+        const repeatingCycle = cycle.length ? cycle : fallbackCycle;
         let i = 0;
         while (roles.length < wordCount) {
-            roles.push(cycle[i % cycle.length]);
+            roles.push(repeatingCycle[i % repeatingCycle.length]);
             i++;
         }
         return roles.slice(0, wordCount);
