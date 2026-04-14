@@ -23,6 +23,11 @@ const StarpassApp = (() => {
     const COPY_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
     const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
     const THEME_STORAGE_KEY = 'starpass-theme';
+    const MIN_WORD_LENGTH = 3;
+    const MAX_BUCKET_WORD_LENGTH = 12;
+    const MAX_USERNAME_BUILD_ATTEMPTS = 220;
+    const NUMBER_SUFFIX_MAX = 100;
+    const NUMBER_SUFFIX_LENGTH = 2;
 
     function $(id) { return document.getElementById(id); }
 
@@ -66,7 +71,7 @@ const StarpassApp = (() => {
 
         const lengthBuckets = {};
         uniqueWords.forEach(word => {
-            const key = String(Math.min(word.length, 12));
+            const key = String(Math.min(word.length, MAX_BUCKET_WORD_LENGTH));
             if (!lengthBuckets[key]) lengthBuckets[key] = [];
             lengthBuckets[key].push(word);
         });
@@ -118,7 +123,7 @@ const StarpassApp = (() => {
 
         if (!Object.keys(lengthBuckets).length && allWords.length) {
             allWords.forEach(word => {
-                const key = String(Math.min(word.length, 12));
+                const key = String(Math.min(word.length, MAX_BUCKET_WORD_LENGTH));
                 if (!lengthBuckets[key]) lengthBuckets[key] = [];
                 lengthBuckets[key].push(word);
             });
@@ -179,7 +184,7 @@ const StarpassApp = (() => {
         return Array.isArray(pool) && pool.length ? pool : allWords;
     }
 
-    function chooseWord(role, minLength = 3, maxLength = 12) {
+    function chooseWord(role, minLength = MIN_WORD_LENGTH, maxLength = MAX_BUCKET_WORD_LENGTH) {
         const pool = getRolePool(role).filter(w => w.length >= minLength && w.length <= maxLength);
         if (!pool.length) return null;
         return pool[secureRandom(pool.length)];
@@ -235,11 +240,11 @@ const StarpassApp = (() => {
             .sort((a, b) => a - b);
         if (!availableLengths.length) return null;
 
-        for (let attempt = 0; attempt < 220; attempt++) {
+        for (let attempt = 0; attempt < MAX_USERNAME_BUILD_ATTEMPTS; attempt++) {
             const roles = templates[secureRandom(templates.length)];
             if (!roles || !roles.length) continue;
-            const minTotal = roles.length * 3;
-            const maxTotal = roles.length * 12;
+            const minTotal = roles.length * MIN_WORD_LENGTH;
+            const maxTotal = roles.length * MAX_BUCKET_WORD_LENGTH;
             if (targetLength < minTotal || targetLength > maxTotal) continue;
 
             const visited = new Set();
@@ -251,10 +256,10 @@ const StarpassApp = (() => {
                 visited.add(key);
 
                 const slotsLeft = roles.length - idx - 1;
-                const minReserved = slotsLeft * 3;
-                const maxReserved = slotsLeft * 12;
-                const minLen = Math.max(3, remaining - maxReserved);
-                const maxLen = Math.min(12, remaining - minReserved);
+                const minReserved = slotsLeft * MIN_WORD_LENGTH;
+                const maxReserved = slotsLeft * MAX_BUCKET_WORD_LENGTH;
+                const minLen = Math.max(MIN_WORD_LENGTH, remaining - maxReserved);
+                const maxLen = Math.min(MAX_BUCKET_WORD_LENGTH, remaining - minReserved);
                 if (minLen > maxLen) return null;
 
                 const lengths = shuffledCopy(availableLengths.filter(n => n >= minLen && n <= maxLen));
@@ -668,7 +673,7 @@ const StarpassApp = (() => {
 
         const roles = getPassphraseRoles(wordCount);
         const words = roles.map(role => {
-            const w = chooseWord(role, 3, 12) || chooseWord('nouns', 3, 12) || 'star';
+            const w = chooseWord(role, MIN_WORD_LENGTH, MAX_BUCKET_WORD_LENGTH) || chooseWord('nouns', MIN_WORD_LENGTH, MAX_BUCKET_WORD_LENGTH) || 'star';
             return capitalize ? w[0].toUpperCase() + w.slice(1) : w;
         });
 
@@ -683,7 +688,7 @@ const StarpassApp = (() => {
         const withNumber = $('include-number-username').checked;
         const allLower   = $('all-lowercase').checked;
 
-        const suffix = withNumber ? String(secureRandom(100)).padStart(2, '0') : '';
+        const suffix = withNumber ? String(secureRandom(NUMBER_SUFFIX_MAX)).padStart(NUMBER_SUFFIX_LENGTH, '0') : '';
         const targetLength = length - suffix.length;
         if (targetLength < 6) {
             toast('Increase username length to support selected options.');
