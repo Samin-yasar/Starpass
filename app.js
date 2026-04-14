@@ -7,7 +7,7 @@
  *  - SVGs in buttons get pointer-events:none via aria-hidden pattern
  */
 const StarpassApp = (() => {
-    let wordList      = [];
+    let wordData      = null;
     let zxcvbnPromise = null;
     let currentResult = { value: '', type: '' };
 
@@ -23,6 +23,13 @@ const StarpassApp = (() => {
     const COPY_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
     const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" pointer-events="none" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
     const THEME_STORAGE_KEY = 'starpass-theme';
+    const MIN_WORD_LENGTH = 3;
+    const MAX_WORD_LENGTH_FOR_BUCKETING = 12; // words with length 12+ are grouped into bucket "12"
+    const MAX_USERNAME_BUILD_ATTEMPTS = 220;
+    const NUMBER_SUFFIX_MAX = 100;
+    const NUMBER_SUFFIX_LENGTH = 2;
+    const VALID_WORD_REGEX = /^[a-z]{3,}$/;
+    const PASSPHRASE_FALLBACK_WORD = 'star';
 
     function $(id) { return document.getElementById(id); }
 
@@ -59,19 +66,247 @@ const StarpassApp = (() => {
         return arr;
     }
 
+    function buildStructuredWordData(words) {
+        const uniqueWords = [...new Set((Array.isArray(words) ? words : [])
+            .map(w => String(w || '').trim().toLowerCase())
+            .filter(w => VALID_WORD_REGEX.test(w)))];
+
+        const lengthBuckets = {};
+        uniqueWords.forEach(word => {
+            const key = String(Math.min(word.length, MAX_WORD_LENGTH_FOR_BUCKETING));
+            if (!lengthBuckets[key]) lengthBuckets[key] = [];
+            lengthBuckets[key].push(word);
+        });
+
+        // Best-effort fallback heuristics only used when structured semantic categories are unavailable.
+        const ADJECTIVE_HINTS = ['able', 'ful', 'ial', 'ical', 'ic', 'ive', 'less', 'ous', 'y'];
+        const VERB_HINTS = ['ate', 'en', 'ify', 'ing', 'ize', 'ise', 'ed'];
+
+        const adjectives = uniqueWords.filter(w => ADJECTIVE_HINTS.some(s => w.endsWith(s)));
+        const verbs = uniqueWords.filter(w => VERB_HINTS.some(s => w.endsWith(s)));
+        const connectors = uniqueWords.filter(w => ['and', 'over', 'under', 'across', 'above', 'beyond', 'inside', 'outside', 'around', 'through'].includes(w));
+        const adjectiveSet = new Set(adjectives);
+        const verbSet = new Set(verbs);
+        const connectorSet = new Set(connectors);
+        const nouns = uniqueWords.filter(w => !adjectiveSet.has(w) && !verbSet.has(w) && !connectorSet.has(w));
+
+        return {
+            version: 2,
+            allWords: uniqueWords,
+            lengthBuckets,
+            semanticCategories: {
+                adjectives,
+                nouns,
+                verbs,
+                connectors
+            },
+            templates: {
+                username: [
+                    ['adjective', 'noun'],
+                    ['adjective', 'noun', 'noun'],
+                    ['noun', 'verb', 'noun'],
+                    ['adjective', 'adjective', 'noun']
+                ]
+            }
+        };
+    }
+
+    function normalizeWordData(raw) {
+        if (!raw || Array.isArray(raw)) return buildStructuredWordData(raw || []);
+
+        const allWords = [...new Set((raw.allWords || [])
+            .map(w => String(w || '').trim().toLowerCase())
+            .filter(w => VALID_WORD_REGEX.test(w)))];
+
+        const lengthBuckets = {};
+        Object.entries(raw.lengthBuckets || {}).forEach(([k, words]) => {
+            const key = String(parseInt(k, 10));
+            const clean = [...new Set((Array.isArray(words) ? words : [])
+                .map(w => String(w || '').trim().toLowerCase())
+                .filter(w => VALID_WORD_REGEX.test(w)))];
+            if (clean.length) lengthBuckets[key] = clean;
+        });
+
+        if (!Object.keys(lengthBuckets).length && allWords.length) {
+            allWords.forEach(word => {
+                const key = String(Math.min(word.length, MAX_WORD_LENGTH_FOR_BUCKETING));
+                if (!lengthBuckets[key]) lengthBuckets[key] = [];
+                lengthBuckets[key].push(word);
+            });
+        }
+
+        const semantic = raw.semanticCategories || {};
+        const semanticCategories = {
+            adjectives: [...new Set((semantic.adjectives || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))],
+            nouns: [...new Set((semantic.nouns || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))],
+            verbs: [...new Set((semantic.verbs || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))],
+            connectors: [...new Set((semantic.connectors || []).map(w => String(w || '').toLowerCase()).filter(w => VALID_WORD_REGEX.test(w)))]
+        };
+
+        if (!semanticCategories.nouns.length) semanticCategories.nouns = allWords.slice();
+        if (!semanticCategories.adjectives.length) semanticCategories.adjectives = allWords.slice();
+        if (!semanticCategories.verbs.length) semanticCategories.verbs = allWords.slice();
+        if (!semanticCategories.connectors.length) semanticCategories.connectors = ['and', 'over', 'under', 'beyond'];
+
+        return {
+            version: raw.version || 2,
+            allWords,
+            lengthBuckets,
+            semanticCategories,
+            templates: raw.templates || {}
+        };
+    }
+
     async function loadWordList() {
-        if (wordList.length > 0) return true;
+        if (wordData && wordData.allWords && wordData.allWords.length > 0) return true;
         try {
             const r = await fetch('src/common_wordslist.json');
             if (!r.ok) throw new Error('fetch failed');
-            wordList = await r.json();
+            wordData = normalizeWordData(await r.json());
         } catch {
-            wordList = ['apple','brave','cedar','delta','eagle','frost','grape','haste',
-                        'iris','joust','kneel','lemon','maple','noble','ocean','pearl',
-                        'quest','river','storm','tiger','ultra','vivid','whirl','xenon',
-                        'yacht','zesty','amber','blaze','crisp','dunes'];
+            wordData = buildStructuredWordData([
+                'apple','brave','cedar','delta','eagle','frost','grape','haste',
+                'iris','joust','kneel','lemon','maple','noble','ocean','pearl',
+                'quest','river','storm','tiger','ultra','vivid','whirl','xenon',
+                'yacht','zesty','amber','blaze','crisp','dunes',
+                'gentle','silver','sunset','forest','glimmer','harbor','meadow','thunder',
+                'wander','create','bright','calm','steady','dream'
+            ]);
         }
         return true;
+    }
+
+    function getRolePool(role) {
+        const semantic = (wordData && wordData.semanticCategories) || {};
+        const allWords = (wordData && wordData.allWords) || [];
+        const roleAliases = {
+            adjective: 'adjectives',
+            noun: 'nouns',
+            verb: 'verbs',
+            connector: 'connectors'
+        };
+        const key = roleAliases[role] || role;
+        const pool = semantic[key];
+        return Array.isArray(pool) && pool.length ? pool : allWords;
+    }
+
+    function chooseWord(role, minLength = MIN_WORD_LENGTH, maxLength = MAX_WORD_LENGTH_FOR_BUCKETING) {
+        const pool = getRolePool(role).filter(w => w.length >= minLength && w.length <= maxLength);
+        if (!pool.length) return null;
+        return pool[secureRandom(pool.length)];
+    }
+
+    function getWordsForRoleAndLength(role, length) {
+        const fullRolePool = getRolePool(role);
+        const rolePool = fullRolePool.filter(w => w.length === length);
+        if (rolePool.length) return rolePool;
+
+        const buckets = (wordData && wordData.lengthBuckets) || {};
+        const bucket = Array.isArray(buckets[String(length)]) ? buckets[String(length)] : [];
+        if (!bucket.length) return [];
+
+        const roleWordSet = new Set(fullRolePool);
+        return bucket.filter(w => roleWordSet.has(w));
+    }
+
+    function shuffledCopy(arr) {
+        const clone = arr.slice();
+        for (let i = clone.length - 1; i > 0; i--) {
+            const j = secureRandom(i + 1);
+            [clone[i], clone[j]] = [clone[j], clone[i]];
+        }
+        return clone;
+    }
+
+    function getConfiguredPassphraseRoleCycle() {
+        const defaultTemplate = ['adjective', 'noun', 'verb', 'noun', 'connector', 'adjective'];
+        const configuredTemplate = wordData?.templates?.passphraseRoleCycle;
+
+        if (!Array.isArray(configuredTemplate) || configuredTemplate.length < 2) {
+            return defaultTemplate;
+        }
+
+        const normalizedTemplate = configuredTemplate.filter(role => typeof role === 'string' && role.trim());
+        return normalizedTemplate.length >= 2 ? normalizedTemplate : defaultTemplate;
+    }
+
+    function getPassphraseRoles(wordCount) {
+        const template = getConfiguredPassphraseRoleCycle();
+        const roles = template.slice(0, Math.min(2, template.length));
+        const cycle = template.slice(2);
+        const fallbackCycle = ['verb', 'noun', 'connector', 'adjective'];
+        const repeatingCycle = cycle.length ? cycle : fallbackCycle;
+        let i = 0;
+        while (roles.length < wordCount) {
+            roles.push(repeatingCycle[i % repeatingCycle.length]);
+            i++;
+        }
+        return roles.slice(0, wordCount);
+    }
+
+    function buildExactLengthUsername(targetLength) {
+        const configuredTemplates = (wordData?.templates?.username && wordData.templates.username.length)
+            ? wordData.templates.username
+            : [
+                ['adjective', 'noun'],
+                ['adjective', 'noun', 'noun'],
+                ['noun', 'verb', 'noun'],
+                ['adjective', 'adjective', 'noun']
+            ];
+        const templates = configuredTemplates.concat([
+            ['noun', 'noun'],
+            ['adjective', 'verb'],
+            ['noun', 'verb'],
+            ['adjective', 'noun', 'verb'],
+            ['verb', 'adjective', 'noun']
+        ]);
+
+        const availableLengths = Object.keys((wordData && wordData.lengthBuckets) || {})
+            .map(n => parseInt(n, 10))
+            .filter(n => Number.isFinite(n) && n >= MIN_WORD_LENGTH && n <= MAX_WORD_LENGTH_FOR_BUCKETING)
+            .sort((a, b) => a - b);
+        if (!availableLengths.length) return null;
+
+        // Bounded retries (max 220 attempts) keep UI generation responsive while still finding exact-length combinations reliably.
+        for (let attempt = 0; attempt < MAX_USERNAME_BUILD_ATTEMPTS; attempt++) {
+            const roles = templates[secureRandom(templates.length)];
+            if (!roles || !roles.length) continue;
+            const minTotal = roles.length * MIN_WORD_LENGTH;
+            const maxTotal = roles.length * MAX_WORD_LENGTH_FOR_BUCKETING;
+            if (targetLength < minTotal || targetLength > maxTotal) continue;
+
+            const visited = new Set();
+            const build = (idx, remaining, acc) => {
+                if (idx === roles.length) return remaining === 0 ? acc.slice() : null;
+
+                const key = `${idx}:${remaining}`;
+                if (visited.has(key)) return null;
+                visited.add(key);
+
+                const slotsLeft = roles.length - idx - 1;
+                const minReserved = slotsLeft * MIN_WORD_LENGTH;
+                const maxReserved = slotsLeft * MAX_WORD_LENGTH_FOR_BUCKETING;
+                const minLen = Math.max(MIN_WORD_LENGTH, remaining - maxReserved);
+                const maxLen = Math.min(MAX_WORD_LENGTH_FOR_BUCKETING, remaining - minReserved);
+                if (minLen > maxLen) return null;
+
+                const lengths = shuffledCopy(availableLengths.filter(n => n >= minLen && n <= maxLen));
+                for (const len of lengths) {
+                    const candidates = getWordsForRoleAndLength(roles[idx], len);
+                    if (!candidates.length) continue;
+                    const chosen = candidates[secureRandom(candidates.length)];
+                    acc.push(chosen);
+                    const found = build(idx + 1, remaining - len, acc);
+                    if (found) return found;
+                    acc.pop();
+                }
+                return null;
+            };
+
+            const words = build(0, targetLength, []);
+            if (words) return words;
+        }
+        return null;
     }
 
     async function loadZxcvbn() {
@@ -464,8 +699,9 @@ const StarpassApp = (() => {
         const capitalize = $('capitalize-words').checked;
         const withNumber = $('include-number').checked;
 
-        const words = Array.from({ length: wordCount }, () => {
-            let w = wordList[secureRandom(wordList.length)];
+        const roles = getPassphraseRoles(wordCount);
+        const words = roles.map(role => {
+            const w = chooseWord(role, MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || chooseWord('noun', MIN_WORD_LENGTH, MAX_WORD_LENGTH_FOR_BUCKETING) || PASSPHRASE_FALLBACK_WORD;
             return capitalize ? w[0].toUpperCase() + w.slice(1) : w;
         });
 
@@ -480,14 +716,22 @@ const StarpassApp = (() => {
         const withNumber = $('include-number-username').checked;
         const allLower   = $('all-lowercase').checked;
 
-        let u = '';
-        while (u.length < length) u += wordList[secureRandom(wordList.length)];
-        u = u.slice(0, length);
-
-        if (withNumber) {
-            const num = String(secureRandom(100)).padStart(2, '0');
-            u = u.slice(0, length - num.length) + num;
+        const minimumUsernameWordLength = MIN_WORD_LENGTH * 2;
+        const minimumUsernameLength = minimumUsernameWordLength + (withNumber ? NUMBER_SUFFIX_LENGTH : 0);
+        const suffix = withNumber ? String(secureRandom(NUMBER_SUFFIX_MAX)).padStart(NUMBER_SUFFIX_LENGTH, '0') : '';
+        const targetLength = length - suffix.length;
+        if (targetLength < minimumUsernameWordLength) {
+            toast(`Username length must be at least ${minimumUsernameLength}${withNumber ? ' when number suffix is enabled' : ''}.`);
+            return;
         }
+
+        const words = buildExactLengthUsername(targetLength);
+        if (!words) {
+            toast('No valid word combination found at this exact length. Try ±1–2 characters.');
+            return;
+        }
+
+        let u = words.join('') + suffix;
         if (allLower) u = u.toLowerCase();
         setResult(u, 'username');
     }
