@@ -707,10 +707,12 @@ const StarpassApp = (() => {
         const withNumber = $('include-number-username').checked;
         const allLower   = $('all-lowercase').checked;
 
+        const minimumUsernameWordLength = MIN_WORD_LENGTH * 2;
+        const minimumUsernameLength = minimumUsernameWordLength + (withNumber ? NUMBER_SUFFIX_LENGTH : 0);
         const suffix = withNumber ? String(secureRandom(NUMBER_SUFFIX_MAX)).padStart(NUMBER_SUFFIX_LENGTH, '0') : '';
         const targetLength = length - suffix.length;
-        if (targetLength < 6) {
-            toast('Username length must be at least 8 when number suffix is enabled.');
+        if (targetLength < minimumUsernameWordLength) {
+            toast(`Username length must be at least ${minimumUsernameLength}${withNumber ? ' when number suffix is enabled' : ''}.`);
             return;
         }
 
