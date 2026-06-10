@@ -1306,3 +1306,33 @@ body.modal-open {
 
 /* SVGs inside buttons must not capture clicks */
 button svg { pointer-events: none; }
+
+/* ── Confirm modal actions ───────────────────────────────────────────────── */
+.confirm-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.confirm-modal-actions .ghost-btn { flex: 0 0 auto; }
+.confirm-modal-actions .danger-btn { flex: 0 0 auto; }
+
+/* Danger variant of generate-btn (for destructive confirmations) */
+.generate-btn.danger-btn {
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+  box-shadow: 0 2px 12px rgba(248,113,113,0.3);
+}
+.generate-btn.danger-btn:hover {
+  background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%);
+  box-shadow: 0 4px 20px rgba(248,113,113,0.45);
+}
+
+/* ── Search hint (history panel) ─────────────────────────────────────────── */
+.search-hint {
+  padding: 4px 20px 8px;
+  font-size: 0.72rem;
+  color: var(--txt-3);
+  line-height: 1.4;
+  border-bottom: 1px solid var(--border);
+}
+

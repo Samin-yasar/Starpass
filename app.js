@@ -312,20 +312,19 @@ const StarpassApp = (() => {
         return null;
     }
 
+    // zxcvbn is loaded as a static <script defer> tag in index.html.
+    // This function is kept as a lightweight guard so call-sites don't need
+    // to know whether the script has already executed.
     async function loadZxcvbn() {
-        if (zxcvbnPromise) return zxcvbnPromise;
-        zxcvbnPromise = new Promise((resolve, reject) => {
-            const s   = document.createElement('script');
-            s.src     = 'src/zxcvbn.min.js';
-            if (window.cspNonce) s.setAttribute('nonce', window.cspNonce);
-            s.onload  = () => resolve();
-            s.onerror = () => {
-                zxcvbnPromise = null;
-                reject(new Error('zxcvbn load failed'));
-            };
-            document.head.appendChild(s);
+        if (typeof zxcvbn === 'function') return;
+        // If somehow called before the deferred script has run, poll briefly.
+        return new Promise((resolve, reject) => {
+            let tries = 0;
+            const id = setInterval(() => {
+                if (typeof zxcvbn === 'function') { clearInterval(id); resolve(); return; }
+                if (++tries > 20) { clearInterval(id); reject(new Error('zxcvbn not loaded')); }
+            }, 100);
         });
-        return zxcvbnPromise;
     }
 
     // ── Crack time formatter ──────────────────────────────────────────────────
@@ -603,7 +602,7 @@ const StarpassApp = (() => {
         const twitterBtn = $('twitter-share');
         if (twitterBtn) twitterBtn.addEventListener('click', () => {
             const text = encodeURIComponent('Starpass — free, private, zero-server password generator');
-            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(location.href)}`, '_blank', 'noopener');
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(location.href)}`, '_blank', 'noopener,noreferrer');
         });
 
         const emailBtn = $('email-share');
@@ -664,9 +663,12 @@ const StarpassApp = (() => {
         const noAmbig      = $('exclude-ambiguous').checked;
 
         const sets = {
-            lowercase: CHARACTER_SETS.lowercase.replace(noAmbig ? /[il]/g : /$/g, ''),
-            uppercase: CHARACTER_SETS.uppercase.replace(noAmbig ? /[IO]/g : /$/g, ''),
-            numbers:   CHARACTER_SETS.numbers.replace(  noAmbig ? /[01]/g : /$/g, ''),
+            // Ambiguous characters excluded when the toggle is on.
+            // Label shows: l, I, O, 0 — we also exclude '1' (one ≈ lowercase L)
+            // Note: lowercase 'i' is NOT in the stated set and is preserved.
+            lowercase: CHARACTER_SETS.lowercase.replace(noAmbig ? /[l]/g    : /$/g, ''),
+            uppercase: CHARACTER_SETS.uppercase.replace(noAmbig ? /[IO]/g   : /$/g, ''),
+            numbers:   CHARACTER_SETS.numbers.replace(  noAmbig ? /[01]/g   : /$/g, ''),
             special:   CHARACTER_SETS.special
         };
 
@@ -716,7 +718,7 @@ const StarpassApp = (() => {
         });
 
         let phrase = words.join(separator);
-        if (withNumber) phrase += secureRandom(100);
+        if (withNumber) phrase += String(secureRandom(100)).padStart(2, '0');
         setResult(phrase, 'passphrase');
     }
 

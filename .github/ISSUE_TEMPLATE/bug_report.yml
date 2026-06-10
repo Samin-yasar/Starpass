@@ -1,0 +1,127 @@
+name: 🐛 Bug Report
+description: Something is broken or behaving unexpectedly in Starpass.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: ["Samin-yasar"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Thanks for reporting a bug! 🙏
+
+        Please fill in every section below as completely as you can. The more detail you provide, the faster we can reproduce and fix the issue.
+
+        > **Security issue?** Do NOT use this form. Please see [SECURITY.md](https://github.com/Samin-yasar/Starpass/blob/main/SECURITY.md) for private disclosure instructions.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before you submit
+      description: Please confirm the following before filing this report.
+      options:
+        - label: I have searched the [existing issues](https://github.com/Samin-yasar/Starpass/issues) and this has not been reported yet.
+          required: true
+        - label: I am using the latest version of Starpass (tested against the live site or the latest `main` branch).
+          required: true
+        - label: This is NOT a security vulnerability. (If it is, please see [SECURITY.md](https://github.com/Samin-yasar/Starpass/blob/main/SECURITY.md) instead.)
+          required: true
+
+  - type: dropdown
+    id: feature-area
+    attributes:
+      label: Which feature is affected?
+      description: Select the area of the app where the bug occurs.
+      options:
+        - Password Generator
+        - Passphrase Generator
+        - Username Generator
+        - Strength Meter (zxcvbn)
+        - Copy to Clipboard
+        - Theme / Appearance
+        - PWA / Offline Mode
+        - History
+        - General UI / Layout
+        - Other (please describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug. What did you see?
+      placeholder: "Example: When I click 'Generate Passphrase' with 5 words selected, the app shows a blank result instead of a passphrase."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: "Example: A 5-word passphrase separated by hyphens should appear in the output box."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Walk us through exactly how to trigger the bug. Be as specific as possible.
+      placeholder: |
+        1. Go to the Passphrase tab
+        2. Set word count to 5
+        3. Select 'Hyphen' as separator
+        4. Click 'Generate Passphrase'
+        5. See blank output
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser & version
+      description: Which browser are you using? (e.g., Chrome 125, Firefox 126, Safari 17.4)
+      placeholder: "Chrome 125.0.6422.76"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 14.4 / Windows 11 / Android 14 / iOS 17"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation-type
+    attributes:
+      label: How are you running Starpass?
+      options:
+        - Live website (starpass.samin-yasar.dev)
+        - Installed PWA
+        - Running locally (http.server / npx serve)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Console errors (if any)
+      description: Open your browser's DevTools (F12), go to the Console tab, reproduce the bug, and paste any red error messages here.
+      render: shell
+      placeholder: "Paste console output here, or write 'None' if there are no errors."
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or screen recordings
+      description: Drag and drop images or recordings here — they help a lot!
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else?
+      description: Any other context that might help us understand or fix the issue.

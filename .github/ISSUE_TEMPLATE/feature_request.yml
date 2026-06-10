@@ -1,0 +1,88 @@
+name: 💡 Feature Request
+description: Suggest an idea or improvement for Starpass.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: ["Samin-yasar"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Got an idea? We'd love to hear it! 💡
+
+        Starpass is a community-driven project, and good suggestions often become real features. Please fill in as much detail as you can so we can properly evaluate your idea.
+
+        > Before submitting, please search [existing issues](https://github.com/Samin-yasar/Starpass/issues?q=label%3Aenhancement) to see if someone else has already suggested this. If so, give it a 👍 reaction rather than filing a duplicate!
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before you submit
+      options:
+        - label: I have searched existing issues and this feature has not been requested yet (or I'm adding new detail to an existing request).
+          required: true
+        - label: This feature aligns with Starpass's mission (privacy-first, zero-knowledge, open-source credential generation).
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: |
+        Describe the problem or limitation you are experiencing. A feature request is much easier to evaluate when we understand *why* it's needed.
+      placeholder: "Example: I often generate passphrases for different accounts and have to copy them manually into a notes app to remember which passphrase goes where. There's no way to label or annotate a generated credential."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear description of what you want to happen. Feel free to include mockups or examples.
+      placeholder: "Example: Add an optional 'Label / Note' field next to the output. When the user saves a generated credential to History, the label is saved alongside it so they can identify it later."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-area
+    attributes:
+      label: Which area of the app does this affect?
+      options:
+        - Password Generator
+        - Passphrase Generator
+        - Username Generator
+        - Strength Meter
+        - Clipboard / Sharing
+        - History / Saved Credentials
+        - Theme / Accessibility
+        - PWA / Offline Mode
+        - Privacy / Security Architecture
+        - New Area (not listed above)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      description: This helps us understand urgency — be honest, not strategic!
+      options:
+        - Nice to have — I could live without it
+        - Useful — it would meaningfully improve my experience
+        - Important — I actively miss this feature
+        - Critical — this is blocking me from using Starpass
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds you've considered
+      description: Have you found any workarounds for this limitation? What other tools or approaches have you tried?
+      placeholder: "Example: I currently paste the passphrase into a separate password manager, but that adds friction."
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Any other information, screenshots, mockups, or links that would help clarify your request.

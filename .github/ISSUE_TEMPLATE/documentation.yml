@@ -1,0 +1,73 @@
+name: 📖 Documentation Issue
+description: Report incorrect, missing, or confusing documentation.
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+assignees: ["Samin-yasar"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Help us improve our docs! 📖
+
+        Clear documentation helps everyone — thank you for taking the time to report an issue.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before you submit
+      options:
+        - label: I have checked that this documentation issue hasn't already been reported.
+          required: true
+
+  - type: dropdown
+    id: doc-location
+    attributes:
+      label: Where is the documentation issue?
+      options:
+        - README.md
+        - CONTRIBUTING.md
+        - SECURITY.md
+        - SUPPORT.md
+        - CODE_OF_CONDUCT.md
+        - Privacy Notice (policy/privacy-notice.html)
+        - Terms of Service (policy/terms-of-service.html)
+        - Inline code comments
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: What type of issue is this?
+      options:
+        - Incorrect information
+        - Missing information
+        - Confusing or unclear wording
+        - Broken link
+        - Typo or grammar error
+        - Outdated information
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the issue
+      description: What is wrong, missing, or confusing? Please quote the specific text if applicable.
+      placeholder: "Example: The README says to run `npm install zxcvbn`, but zxcvbn.min.js is already bundled in the src/ folder, so this step is unnecessary and confusing."
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: What should the documentation say instead? (Optional, but very helpful.)
+      placeholder: "Example: Remove the `npm install zxcvbn` step, or clarify that it's only needed if you want to update the bundled file."
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else?

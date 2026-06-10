@@ -3,6 +3,7 @@
 <head>
   <script>
   (function () {
+    // Dynamic nonce for style-src inline styles only
     var arr = new Uint8Array(16);
     crypto.getRandomValues(arr);
     var nonce = btoa(Array.from(arr, function(b) { return String.fromCharCode(b); }).join(''))
@@ -10,7 +11,8 @@
     window.cspNonce = nonce;
     var m = document.createElement('meta');
     m.httpEquiv = 'Content-Security-Policy';
-    m.content = "default-src 'self'; script-src 'self'; "
+    m.content = "default-src 'self'; "
+      + "script-src 'self'; "
       + "style-src 'self' 'nonce-" + nonce + "' https://fonts.googleapis.com; "
       + "font-src https://fonts.gstatic.com";
     document.head.insertBefore(m, document.head.firstChild);
@@ -18,13 +20,24 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0a0f"> 
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="description" content="Starpass — free, open-source, offline-first password, passphrase, and username generator. Zero-knowledge: nothing ever leaves your device.">
+  <!-- Open Graph / social sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Starpass — Password Generator">
+  <meta property="og:description" content="Free, private, zero-server password generation. Runs 100% in your browser.">
+  <meta property="og:url" content="https://samin-yasar.github.io/Starpass/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Starpass — Password Generator">
+  <meta name="twitter:description" content="Free, private, zero-server password generation. Runs 100% in your browser.">
   <title>Starpass — Password Generator</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- zxcvbn loaded as a static tag (not dynamic injection) so script-src 'self' covers it -->
+  <script src="src/zxcvbn.min.js" defer></script>
   <script src="ui.js" defer></script>
   <script src="history.js" defer></script>
   <script src="app.js" defer></script>
@@ -228,7 +241,7 @@
           <label class="toggle-row">
             <input type="checkbox" id="exclude-ambiguous" class="toggle-input">
             <span class="toggle-track" aria-hidden="true"></span>
-            <span class="toggle-text">Exclude ambiguous characters <em>(l, I, O, 0)</em></span>
+            <span class="toggle-text">Exclude ambiguous characters <em>(l, 1, I, O, 0)</em></span>
           </label>
           <button type="submit" class="generate-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -353,6 +366,7 @@
           <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="search" id="history-search" class="search-input" placeholder="Search by type or date…" aria-label="Search history">
         </div>
+        <p class="search-hint" aria-hidden="true">Search by type (password / passphrase / username) or date. Content is encrypted and cannot be searched.</p>
         <p id="history-caption" class="history-caption" aria-live="polite"></p>
         <div id="historyList" class="history-list" role="list">
           <div id="history-empty-state" class="history-empty">
@@ -402,7 +416,7 @@
         <p>&copy; 2026 Starpass. No data is ever sent to a server.</p>
       </div>
       <nav class="footer-links" aria-label="Legal and License navigation">
-        <a href="https://github.com/Samin-yasar/Starpass/blob/main/LICENSE" class="footer-link" target="_blank" rel="noopener">
+        <a href="https://github.com/Samin-yasar/Starpass/blob/main/LICENSE" class="footer-link" target="_blank" rel="noopener noreferrer">
           License: GPL-v3.0
         </a>
         <span class="footer-dot" aria-hidden="true"></span>

@@ -27,14 +27,28 @@ const PasswordHistoryManager = (() => {
     const PBKDF2_ITERS = 250_000;
     const VERIFY_PLAIN = 'starpass-v2-verify';
     const EXPAND_KEY   = 'starpass-history-expanded';
+    const LOCK_DELAY_KEY = 'starpass-lock-delay'; // ms; 0 = never lock on hide
+    const DEFAULT_LOCK_DELAY_MS = 3 * 60_000;     // 3-minute grace period (default)
     const AUTO_HIDE_MS = 2 * 60 * 1000; // auto-hide revealed values after 2 minutes
     const CLIPBOARD_CLEAR_MS = 30_000;  // best-effort clipboard clear after copy
 
+    // ── Brute-force rate limiter ──────────────────────────────────────────────
+    // Tracks failed master-password attempts to prevent CPU-burning rapid retries.
+    const RATE_LIMIT_MAX      = 3;       // max failures before temporary lockout
+    const RATE_LIMIT_WINDOW   = 60_000;  // 60-second window
+    let _failedAttempts = 0;
+    let _rateLimitUntil = 0;             // epoch ms; 0 = not locked
+
     let db = null;
 
-    // Cache the CryptoKey object (unexportable), not the passphrase string
-    let _cachedKey    = null;
-    let _keyExpiry    = null;
+    // Cache the CryptoKey object (unexportable), not the passphrase string.
+    // SECURITY: extractable=false means crypto.subtle.exportKey() will always throw,
+    // so even a successful XSS that reaches this module cannot exfiltrate raw key bytes.
+    // XSS can still *use* the cached key via our own decrypt() wrappers, but it
+    // cannot copy the key out of the browser's secure key storage.
+    let _cachedKey       = null;
+    let _keyExpiry       = null;
+    let _visibilityTimer = null; // grace-period timer for tab-hide lockout
 
     // ── DB ────────────────────────────────────────────────────────────────────
     async function initDB() {
@@ -58,16 +72,29 @@ const PasswordHistoryManager = (() => {
             'raw',
             new TextEncoder().encode(passphrase),
             { name: 'PBKDF2' },
-            false,
+            false, // PBKDF2 base key: non-extractable
             ['deriveKey']
         );
-        return crypto.subtle.deriveKey(
+        const key = await crypto.subtle.deriveKey(
             { name: 'PBKDF2', salt, iterations: PBKDF2_ITERS, hash: 'SHA-512' },
             raw,
             { name: 'AES-GCM', length: 256 },
-            false,                      // NOT extractable — can't be read from memory
+            false, // ← NON-EXTRACTABLE: crypto.subtle.exportKey() will throw for this key.
+                   //   XSS cannot exfiltrate raw key bytes even with full script access.
+                   //   DO NOT change this to `true` — it would allow key exfiltration.
             ['encrypt', 'decrypt']
         );
+        // Sanity assertion: verify the browser honoured the non-extractable flag.
+        // This will throw in any correctly-implemented Web Crypto environment.
+        try {
+            await crypto.subtle.exportKey('raw', key);
+            // If we reach here the browser is broken — fail closed.
+            throw new Error('deriveKey: browser returned an extractable key — refusing to use it.');
+        } catch (exportErr) {
+            if (exportErr.message && exportErr.message.startsWith('deriveKey:')) throw exportErr;
+            // Expected path: exportKey threw an InvalidAccessError — key is non-extractable. ✓
+        }
+        return key;
     }
 
     async function aesEncrypt(plaintext, key) {
@@ -133,7 +160,47 @@ const PasswordHistoryManager = (() => {
     // ── Key cache (CryptoKey, not string) ─────────────────────────────────────
     function getCachedKey()  { return (_cachedKey && _keyExpiry > Date.now()) ? _cachedKey : null; }
     function setCachedKey(k) { _cachedKey = k; _keyExpiry = Date.now() + SESSION_MINS * 60_000; }
-    function clearKeyCache() { _cachedKey = null; _keyExpiry = null; }
+    function clearKeyCache() {
+        _cachedKey = null;
+        _keyExpiry = null;
+        // Cancel any pending grace-period timer so it doesn't fire after an
+        // explicit logout / vault clear.
+        if (_visibilityTimer) { clearTimeout(_visibilityTimer); _visibilityTimer = null; }
+    }
+
+    // ── Grace-period visibility lockout ───────────────────────────────────────
+    // When the tab is hidden, start a timer. If the tab comes back before it
+    // fires, cancel it — no interruption. If the user walks away, the key is
+    // wiped before an attacker can reach an unattended machine.
+    function getLockDelayMs() {
+        const stored = parseInt(localStorage.getItem(LOCK_DELAY_KEY), 10);
+        if (Number.isFinite(stored) && stored >= 0) return stored;
+        return DEFAULT_LOCK_DELAY_MS;
+    }
+
+    function setupVisibilityLockout() {
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Tab became hidden — start grace-period timer
+                const delay = getLockDelayMs();
+                if (delay === 0) return; // user opted out of auto-lock
+                if (_visibilityTimer) return; // timer already running
+                _visibilityTimer = setTimeout(() => {
+                    _visibilityTimer = null;
+                    if (_cachedKey) {
+                        clearKeyCache();
+                        // Subtle notification: next action will re-prompt for password
+                    }
+                }, delay);
+            } else {
+                // Tab became visible again — cancel grace-period timer
+                if (_visibilityTimer) {
+                    clearTimeout(_visibilityTimer);
+                    _visibilityTimer = null;
+                }
+            }
+        });
+    }
 
     // ── Toast ──────────────────────────────────────────────────────────────────
     function toast(msg, ok = false) {
@@ -171,6 +238,13 @@ const PasswordHistoryManager = (() => {
         const cached = getCachedKey();
         if (cached) return cached;
 
+        // Rate-limit check — prevent rapid CPU-burning retries on wrong password
+        if (Date.now() < _rateLimitUntil) {
+            const secsLeft = Math.ceil((_rateLimitUntil - Date.now()) / 1000);
+            toast(`Too many failed attempts. Try again in ${secsLeft}s.`);
+            return null;
+        }
+
         if (typeof showPassphraseModal !== 'function') {
             toast('UI module not loaded.');
             return null;
@@ -183,12 +257,22 @@ const PasswordHistoryManager = (() => {
                 setLoading(true);
                 try {
                     const key = await deriveAndVerify(passphrase);
+                    // Successful auth — reset the rate-limiter
+                    _failedAttempts = 0;
+                    _rateLimitUntil = 0;
                     if (remember) setCachedKey(key);
                     resolve(key);
                 } catch (err) {
                     setLoading(false);
                     if (err.message === 'incorrect-password') {
-                        toast('Wrong master password.');
+                        _failedAttempts++;
+                        if (_failedAttempts >= RATE_LIMIT_MAX) {
+                            _rateLimitUntil = Date.now() + RATE_LIMIT_WINDOW;
+                            _failedAttempts = 0;
+                            toast(`Too many wrong attempts. Locked for ${RATE_LIMIT_WINDOW / 1000}s.`);
+                        } else {
+                            toast(`Wrong master password. ${RATE_LIMIT_MAX - _failedAttempts} attempt(s) remaining.`);
+                        }
                     } else {
                         console.error('Key derivation failed:', err);
                         toast('Key derivation failed.');
@@ -502,16 +586,69 @@ const PasswordHistoryManager = (() => {
     }
 
     function clearAll() {
-        if (!confirm('Delete ALL history and reset the vault? This cannot be undone.')) return;
-        clearKeyCache();
+        // Use a custom confirmation modal instead of window.confirm() which can
+        // be suppressed in PWA/iframe contexts and lacks visual consistency.
+        showConfirmModal(
+            'Clear Entire Vault?',
+            'This will permanently delete all history entries and reset the master password. This action cannot be undone.',
+            'Delete vault',
+            () => {
+                clearKeyCache();
+                const tx1 = db.transaction([STORE_NAME], 'readwrite');
+                tx1.objectStore(STORE_NAME).clear();
+                tx1.oncomplete = () => {
+                    const tx2 = db.transaction([META_STORE], 'readwrite');
+                    tx2.objectStore(META_STORE).clear();
+                    tx2.oncomplete = () => { toast('Vault cleared.', true); loadAndDisplay(); };
+                };
+            }
+        );
+    }
 
-        const tx1 = db.transaction([STORE_NAME], 'readwrite');
-        tx1.objectStore(STORE_NAME).clear();
-        tx1.oncomplete = () => {
-            const tx2 = db.transaction([META_STORE], 'readwrite');
-            tx2.objectStore(META_STORE).clear();
-            tx2.oncomplete = () => { toast('Vault cleared.', true); loadAndDisplay(); };
-        };
+    // ── Custom confirmation modal ──────────────────────────────────────────────
+    // Replaces window.confirm() which is unreliable in PWA / iframe contexts.
+    function showConfirmModal(title, message, confirmLabel, onConfirm) {
+        // Build overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay confirm-modal-overlay';
+        overlay.setAttribute('role', 'alertdialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'confirm-modal-title');
+        overlay.setAttribute('aria-describedby', 'confirm-modal-desc');
+
+        overlay.innerHTML = `
+          <div class="modal-sheet modal-sheet--sm">
+            <div class="modal-drag-handle" aria-hidden="true"></div>
+            <div class="modal-head">
+              <h2 id="confirm-modal-title">${title}</h2>
+            </div>
+            <div class="modal-body">
+              <p id="confirm-modal-desc" class="modal-desc">${message}</p>
+              <div class="confirm-modal-actions">
+                <button class="ghost-btn" id="confirm-cancel-btn">Cancel</button>
+                <button class="generate-btn danger-btn" id="confirm-ok-btn">${confirmLabel}</button>
+              </div>
+            </div>
+          </div>`;
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('show')));
+
+        const dur = window.matchMedia('(prefers-reduced-motion:reduce)').matches ? 0 : 400;
+
+        function close(confirmed) {
+            overlay.classList.remove('show');
+            setTimeout(() => overlay.remove(), dur);
+            if (confirmed) onConfirm();
+        }
+
+        overlay.querySelector('#confirm-cancel-btn').addEventListener('click', () => close(false));
+        overlay.querySelector('#confirm-ok-btn').addEventListener('click', () => close(true));
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+        overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(false); });
+
+        // Focus the cancel button by default (safer default for destructive actions)
+        setTimeout(() => overlay.querySelector('#confirm-cancel-btn').focus(), 80);
     }
 
     // ── Init ───────────────────────────────────────────────────────────────────
@@ -519,6 +656,9 @@ const PasswordHistoryManager = (() => {
         try {
             await initDB();
             await loadAndDisplay();
+
+            // Arm the grace-period tab-visibility lockout
+            setupVisibilityLockout();
 
             const list      = document.getElementById('historyList');
             const clearBtn  = document.getElementById('clear-history-button');
@@ -583,7 +723,7 @@ const PasswordHistoryManager = (() => {
         }
     }
 
-    return { init, addToHistory };
+    return { init, addToHistory, getLockDelayMs, LOCK_DELAY_KEY, DEFAULT_LOCK_DELAY_MS };
 })();
 
 document.addEventListener('DOMContentLoaded', () => PasswordHistoryManager.init());

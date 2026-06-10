@@ -1,9 +1,12 @@
-const CACHE_NAME = 'starpass-cache-v2.2';
+const CACHE_NAME = 'starpass-cache-v2.3';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
+  '/history.js',
+  '/ui.js',
+  '/manifest.json',
   '/src/zxcvbn.min.js',
   '/src/common_wordslist.json'
 ];
