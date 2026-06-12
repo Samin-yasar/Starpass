@@ -14,13 +14,20 @@
     m.content = "default-src 'self'; "
       + "script-src 'self'; "
       + "style-src 'self' 'nonce-" + nonce + "' https://fonts.googleapis.com; "
+      + "worker-src 'self'; "
+      + "connect-src 'self' https://keys.openpgp.org; "
+      + "base-uri 'none'; "
+      + "form-action 'none'; "
+      + "object-src 'none'; "
+      + "frame-ancestors 'none'; "
       + "font-src https://fonts.gstatic.com";
     document.head.insertBefore(m, document.head.firstChild);
   }());
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0a0f">
+  <meta name="theme-color" content="#121214">
+  <meta name="referrer" content="no-referrer">
   <meta name="description" content="Starpass — free, open-source, offline-first password, passphrase, and username generator. Zero-knowledge: nothing ever leaves your device.">
   <!-- Open Graph / social sharing -->
   <meta property="og:type" content="website">
@@ -38,9 +45,11 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- zxcvbn loaded as a static tag (not dynamic injection) so script-src 'self' covers it -->
   <script src="src/zxcvbn.min.js" defer></script>
+  <script src="src/services/keyserverService.js" defer></script>
   <script src="ui.js" defer></script>
   <script src="history.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="pgp.js" defer></script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -207,6 +216,12 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           Username
         </button>
+        <button id="tab-keys-btn" class="tab-btn" data-tab="keys" role="tab" aria-selected="false" aria-controls="keys">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+          </svg>
+          Keys
+        </button>
       </div>
 
       <!-- Tab: Password -->
@@ -313,6 +328,133 @@
             Generate Username
           </button>
         </form>
+      </div>
+
+      <!-- Tab: Keys -->
+      <div id="keys" class="tab-content" role="tabpanel" aria-labelledby="tab-keys-btn">
+        <form id="pgp-form" novalidate>
+          <div class="field-row pgp-identity">
+            <div class="pgp-field">
+              <label for="pgp-name" class="field-label">Name <span class="txt-muted">(optional)</span></label>
+              <input type="text" id="pgp-name" class="count-input" placeholder="e.g. Alice">
+            </div>
+            <div class="pgp-field">
+              <label for="pgp-email" class="field-label">Email <span class="txt-req">*</span></label>
+              <input type="email" id="pgp-email" class="count-input" placeholder="alice@example.com" required>
+              <div id="pgp-email-error" class="pgp-field-error" hidden></div>
+            </div>
+          </div>
+
+          <div class="pgp-divider"></div>
+
+          <div class="pgp-field">
+            <label class="field-label">ECC Cryptographic Curve</label>
+            <div class="pgp-curve-cards">
+              <label class="curve-card">
+                <input type="radio" name="pgp-curve" value="curve25519" checked>
+                <div class="curve-card-inner">
+                  <div class="curve-card-header">
+                    <span class="curve-title">Curve25519 (Ed25519)</span>
+                    <span class="curve-badge">Recommended</span>
+                  </div>
+                  <p class="curve-desc">Modern standard key. Instant generation, highly compatible, and optimized for performance.</p>
+                </div>
+              </label>
+              <label class="curve-card">
+                <input type="radio" name="pgp-curve" value="curve448">
+                <div class="curve-card-inner">
+                  <div class="curve-card-header">
+                    <span class="curve-title">Curve448 (Ed448)</span>
+                    <span class="curve-badge secondary">High Security</span>
+                  </div>
+                  <p class="curve-desc">Stronger security margin with a 224-bit security level. Extremely secure, slightly slower.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="pgp-divider"></div>
+
+          <div class="field-row pgp-passphrase-row">
+            <div class="pgp-field">
+              <label for="pgp-passphrase" class="field-label">Passphrase <span class="txt-req">*</span></label>
+              <input type="password" id="pgp-passphrase" class="count-input" placeholder="Min 12 characters" required>
+              <div id="pgp-passphrase-error" class="pgp-field-error" hidden></div>
+            </div>
+            <div class="pgp-field">
+              <label for="pgp-passphrase2" class="field-label">Confirm Passphrase <span class="txt-req">*</span></label>
+              <input type="password" id="pgp-passphrase2" class="count-input" placeholder="Repeat passphrase" required>
+              <div id="pgp-passphrase2-error" class="pgp-field-error" hidden></div>
+            </div>
+          </div>
+
+          <div class="pgp-strength-wrap">
+            <div class="strength-header">
+              <span class="strength-title">Passphrase Strength</span>
+              <span id="pgp-pass-strength-label" class="strength-label"></span>
+            </div>
+            <div class="strength-track">
+              <div id="pgp-pass-strength-bar" class="strength-fill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="pgp-divider"></div>
+
+          <label class="toggle-row">
+            <input type="checkbox" id="pgp-publish" class="toggle-input">
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-text">Publish public key to keys.openpgp.org</span>
+          </label>
+
+          <button type="submit" id="pgp-generate-btn" class="generate-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+            <span class="btn-label">Generate Key Pair</span>
+          </button>
+          
+          <div id="pgp-status" class="pgp-status-text" aria-live="polite"></div>
+        </form>
+
+        <div id="pgp-output-panel" class="pgp-output-panel hidden">
+          <div class="pgp-output-header">
+            <h3>Generated Public Key</h3>
+            <div id="pgp-keyserver-status" class="pgp-keyserver-status" hidden></div>
+          </div>
+          <div class="pgp-output-grid">
+            <div class="pgp-output-meta">
+              <dl>
+                <dt>Fingerprint</dt>
+                <dd><code id="pgp-out-fingerprint"></code></dd>
+                <dt>Key ID</dt>
+                <dd><code id="pgp-out-keyid"></code></dd>
+                <dt>Algorithm</dt>
+                <dd><span id="pgp-out-algorithm"></span></dd>
+                <dt>Created</dt>
+                <dd><span id="pgp-out-created"></span></dd>
+              </dl>
+            </div>
+            <div class="pgp-output-textarea-wrap">
+              <textarea id="pgp-out-pubkey" class="pgp-out-textarea" readonly aria-label="Public Key"></textarea>
+            </div>
+          </div>
+          <div class="pgp-output-actions">
+            <button id="pgp-copy-pubkey-btn" class="ghost-btn">Copy Public Key</button>
+            <button id="pgp-publish-btn" class="ghost-btn">Publish to keyserver</button>
+          </div>
+          <div class="pgp-vault-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+            Your private key has been safely encrypted and stored in your local vault.
+          </div>
+        </div>
+        
+        <!-- Keys Vault List -->
+        <div class="pgp-keys-vault">
+          <h3>Your PGP Keys</h3>
+          <div id="pgp-keys-list" class="pgp-keys-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
       </div>
 
       <!-- Output -->

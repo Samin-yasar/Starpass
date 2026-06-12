@@ -19,7 +19,7 @@
  */
 const PasswordHistoryManager = (() => {
     const DB_NAME      = 'StarpassDB';
-    const DB_VERSION   = 3;             // incremented for new schema
+    const DB_VERSION   = 4;             // incremented for new schema
     const STORE_NAME   = 'history';
     const META_STORE   = 'meta';
     const MAX_HISTORY  = 100;
@@ -60,6 +60,12 @@ const PasswordHistoryManager = (() => {
                     d.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
                 if (!d.objectStoreNames.contains(META_STORE))
                     d.createObjectStore(META_STORE, { keyPath: 'id' });
+                if (!d.objectStoreNames.contains('pgpKeys')) {
+                    const st = d.createObjectStore('pgpKeys', { keyPath: 'id', autoIncrement: true });
+                    st.createIndex('fingerprint', 'fingerprint', { unique: true });
+                    st.createIndex('createdAt', 'createdAt', { unique: false });
+                    st.createIndex('published', 'published', { unique: false });
+                }
             };
             req.onsuccess = e => { db = e.target.result; resolve(); };
             req.onerror   = e => reject('DB: ' + e.target.error);
@@ -723,7 +729,7 @@ const PasswordHistoryManager = (() => {
         }
     }
 
-    return { init, addToHistory, getLockDelayMs, LOCK_DELAY_KEY, DEFAULT_LOCK_DELAY_MS };
+    return { init, addToHistory, getLockDelayMs, LOCK_DELAY_KEY, DEFAULT_LOCK_DELAY_MS, getMasterKey };
 })();
 
 document.addEventListener('DOMContentLoaded', () => PasswordHistoryManager.init());

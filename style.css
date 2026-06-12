@@ -27,6 +27,9 @@
   --danger:      #f87171;
   --warn:        #fbbf24;
 
+  --bg-card:     var(--bg-2);
+  --bg-input:    var(--bg-3);
+
   /* Strength colours */
   --s0: #f87171;
   --s1: #fb923c;
@@ -68,6 +71,9 @@
   --txt-2:       #374151;
   --txt-3:       #6b7280;
   --header-bg:   rgba(244,246,251,0.9);
+
+  --bg-card:     var(--bg-1);
+  --bg-input:    var(--bg-2);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────── */
@@ -266,7 +272,7 @@ a { color: inherit; text-decoration: none; }
 /* ── Tabs ───────────────────────────────────────────────────────────────── */
 .tab-rail {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   background: var(--bg-2);
   border-bottom: 1px solid var(--border);
   padding: 4px;
@@ -1334,5 +1340,492 @@ button svg { pointer-events: none; }
   color: var(--txt-3);
   line-height: 1.4;
   border-bottom: 1px solid var(--border);
+}
+
+/* ── PGP Keys Tab Styles ─────────────────────────────────────────────────── */
+
+.pgp-identity {
+  display: flex;
+  gap: 16px;
+}
+
+.pgp-identity .pgp-field {
+  flex: 1;
+}
+
+.pgp-field-error {
+  color: var(--danger);
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.pgp-input-error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15) !important;
+}
+
+.pgp-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 24px 0;
+}
+
+/* ECC Curve Cards Selector */
+.pgp-curve-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+@media (max-width: 600px) {
+  .pgp-curve-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.curve-card {
+  display: block;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: border-color var(--fast), background var(--fast), box-shadow var(--fast), transform var(--fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.curve-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.curve-card:hover {
+  background: var(--bg-3);
+  border-color: var(--border-md);
+  transform: translateY(-2px);
+}
+
+.curve-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(124, 108, 250, 0.15);
+}
+
+.curve-card-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.curve-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.curve-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--txt);
+}
+
+.curve-badge {
+  font-size: 0.68rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(124, 108, 250, 0.2);
+}
+
+.curve-badge.secondary {
+  background: var(--bg-3);
+  color: var(--txt-2);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.curve-card:has(input:checked) .curve-badge.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--txt);
+  border-color: transparent;
+}
+
+.curve-desc {
+  font-size: 0.78rem;
+  color: var(--txt-2);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.curve-card:has(input:checked) .curve-desc {
+  color: var(--txt);
+}
+
+.pgp-passphrase-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .pgp-passphrase-row {
+    flex-direction: row;
+  }
+  .pgp-passphrase-row .pgp-field {
+    flex: 1;
+  }
+}
+
+.pgp-strength-wrap {
+  margin-top: 16px;
+}
+
+.pgp-status-text {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--txt-2);
+  min-height: 1.2em;
+  font-weight: 500;
+}
+
+/* Dynamic Output Panel */
+.pgp-output-panel {
+  margin-top: 32px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  animation: slideUp 0.35s var(--ease);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.pgp-output-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
+}
+
+.pgp-output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.pgp-output-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--txt);
+}
+
+.pgp-output-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pgp-output-meta dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 20px;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.pgp-output-meta dt {
+  color: var(--txt-3);
+  font-weight: 500;
+}
+
+.pgp-output-meta dd {
+  margin: 0;
+  color: var(--txt);
+}
+
+.pgp-output-meta code {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg-input);
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.pgp-out-textarea-wrap {
+  position: relative;
+}
+
+.pgp-out-textarea {
+  width: 100%;
+  height: 200px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--txt);
+  resize: vertical;
+  line-height: 1.4;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+
+.pgp-out-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.pgp-output-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pgp-vault-notice {
+  margin-top: 24px;
+  padding: 14px 18px;
+  background: rgba(52, 211, 153, 0.06);
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  border-radius: var(--r-md);
+  color: var(--txt);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pgp-vault-notice svg {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+/* Keyserver Status Badge */
+.pgp-keyserver-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-weight: 600;
+  background: var(--bg-input);
+  color: var(--txt-3);
+  border: 1px solid var(--border);
+}
+.pgp-keyserver-status--published {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+  border-color: rgba(52, 211, 153, 0.2);
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.1);
+}
+
+/* PGP Vault Section */
+.pgp-keys-vault {
+  margin-top: 48px;
+}
+
+.pgp-keys-vault h3 {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--txt);
+  letter-spacing: -0.01em;
+}
+
+.pgp-keys-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pgp-empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--bg-card);
+  border-radius: var(--r-xl);
+  border: 1px dashed var(--border);
+  color: var(--txt-3);
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pgp-empty-state span[aria-hidden="true"] {
+  font-size: 1.8rem;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
+/* Key Vault Card Item */
+.pgp-key-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform var(--fast) var(--ease), border-color var(--fast), box-shadow var(--fast);
+}
+
+.pgp-key-item:hover {
+  border-color: var(--border-md);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.pgp-key-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pgp-key-fp {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  word-break: break-all;
+}
+
+.pgp-key-algo {
+  font-size: 0.72rem;
+  background: var(--bg-input);
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--txt-2);
+  border: 1px solid var(--border);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+}
+
+.pgp-key-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--txt-2);
+}
+
+.pgp-key-pub-badge {
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--bg-input);
+  color: var(--txt-3);
+  font-weight: 600;
+  font-size: 0.72rem;
+  border: 1px solid var(--border);
+}
+.pgp-key-pub-badge--published {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+  border-color: rgba(52, 211, 153, 0.2);
+}
+
+.pgp-key-item-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.pgp-key-item-actions .ghost-btn {
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  height: 34px;
+}
+
+/* Modals Overlay Glassmorphism */
+.confirm-modal-overlay {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Publish Warning Modal / Banner */
+.pgp-publish-warning-banner {
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: var(--r-md);
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  color: var(--txt);
+}
+
+.pgp-warning-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.pgp-warning-list {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--txt-2);
+}
+
+.pgp-warning-list li {
+  margin-bottom: 6px;
+}
+
+.pgp-warning-list li strong {
+  color: var(--txt);
+}
+
+.pgp-publish-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 20px;
+  margin: 0 0 24px 0;
+  font-size: 0.85rem;
+  background: var(--bg-input);
+  padding: 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+.pgp-publish-dl dt {
+  color: var(--txt-3);
+  font-weight: 500;
+}
+.pgp-publish-dl dd {
+  margin: 0;
+  color: var(--txt);
+}
+.pgp-fingerprint-sm {
+  font-size: 0.75rem;
+  word-break: break-all;
+  font-family: 'DM Mono', monospace;
+  color: var(--accent);
+  font-weight: 600;
 }
 
