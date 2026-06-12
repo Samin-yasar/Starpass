@@ -654,6 +654,30 @@ const StarpassApp = (() => {
     }
 
     // ── Generators ────────────────────────────────────────────────────────────
+    function generateStrongPasswordString(length = 24) {
+        const sets = {
+            lowercase: CHARACTER_SETS.lowercase.replace(/[l]/g, ''),
+            uppercase: CHARACTER_SETS.uppercase.replace(/[IO]/g, ''),
+            numbers:   CHARACTER_SETS.numbers.replace(/[01]/g, ''),
+            special:   CHARACTER_SETS.special
+        };
+        const chars = [];
+        const add = (type, n) => {
+            const pool = sets[type];
+            for (let i = 0; i < n; i++) chars.push(pool[secureRandom(pool.length)]);
+        };
+        add('lowercase', 2);
+        add('uppercase', 2);
+        add('numbers',   2);
+        add('special',   2);
+
+        const fill = sets.lowercase + sets.uppercase + sets.numbers + sets.special;
+        const rem = length - chars.length;
+        for (let i = 0; i < rem; i++) chars.push(fill[secureRandom(fill.length)]);
+
+        return shuffle(chars).join('');
+    }
+
     function generatePassword() {
         const length       = parseInt($('password-length').value);
         const lowerCount   = Math.max(0, parseInt($('lowercase').value) || 0);
@@ -748,7 +772,7 @@ const StarpassApp = (() => {
         setResult(u, 'username');
     }
 
-    return { init };
+    return { init, generateStrongPasswordString };
 })();
 
 document.addEventListener('DOMContentLoaded', StarpassApp.init);

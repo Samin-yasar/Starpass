@@ -657,6 +657,12 @@ const PGPManager = (() => {
                   </svg>
                   Copy public key
                 </button>
+                <button class="ghost-btn pgp-key-copy-priv-btn" data-id="${rec.id}" title="Copy private key" aria-label="Copy private key">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                  </svg>
+                  Copy private key
+                </button>
                 ${!rec.published ? `
                 <button class="ghost-btn pgp-key-publish-btn" data-id="${rec.id}" title="Publish to keyserver" aria-label="Publish to keyserver">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -678,6 +684,7 @@ const PGPManager = (() => {
 
     async function handleKeysListClick(e) {
         const copyBtn    = e.target.closest('.pgp-key-copy-btn');
+        const copyPrivBtn= e.target.closest('.pgp-key-copy-priv-btn');
         const publishBtn = e.target.closest('.pgp-key-publish-btn');
         const deleteBtn  = e.target.closest('.pgp-key-delete-btn');
 
@@ -691,6 +698,25 @@ const PGPManager = (() => {
                     await navigator.clipboard.writeText(rec.publicKeyArmored);
                     toast('Public key copied!', true);
                 } catch { toast('Copy failed.'); }
+            }
+        }
+
+        if (copyPrivBtn) {
+            const id  = parseInt(copyPrivBtn.dataset.id, 10);
+            const db  = await getPGPDB();
+            const tx  = db.transaction([PGP_STORE], 'readonly');
+            const rec = await idbReq(tx.objectStore(PGP_STORE).get(id));
+            if (rec && rec.encryptedPrivateKey) {
+                try {
+                    const masterKey = await window.PasswordHistoryManager.getMasterKey();
+                    if (!masterKey) return; // user cancelled
+                    const privKey = await vaultDecrypt(rec.encryptedPrivateKey.iv, rec.encryptedPrivateKey.encryptedData, masterKey);
+                    await navigator.clipboard.writeText(privKey);
+                    toast('Private key copied!', true);
+                } catch (err) {
+                    console.error('Failed to decrypt private key:', err);
+                    toast('Failed to decrypt or copy private key.');
+                }
             }
         }
 
@@ -777,6 +803,32 @@ const PGPManager = (() => {
         const passInput = $('pgp-passphrase');
         if (passInput) {
             passInput.addEventListener('input', () => updatePassStrength(passInput.value));
+        }
+
+        // Visibility and generation toggles
+        const toggleBtn = $('pgp-pass-toggle');
+        const genBtn = $('pgp-pass-gen');
+        const pass2Input = $('pgp-passphrase2');
+
+        if (toggleBtn && passInput && pass2Input) {
+            toggleBtn.addEventListener('click', () => {
+                const type = passInput.type === 'password' ? 'text' : 'password';
+                passInput.type = type;
+                pass2Input.type = type;
+            });
+        }
+
+        if (genBtn && passInput && pass2Input) {
+            genBtn.addEventListener('click', () => {
+                if (window.StarpassApp && window.StarpassApp.generateStrongPasswordString) {
+                    const newPass = window.StarpassApp.generateStrongPasswordString(24);
+                    passInput.value = newPass;
+                    pass2Input.value = newPass;
+                    updatePassStrength(newPass);
+                } else {
+                    toast('Password generator not available.');
+                }
+            });
         }
 
         // Copy public key button (output panel)

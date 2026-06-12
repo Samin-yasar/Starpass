@@ -1234,6 +1234,41 @@ form { display: flex; flex-direction: column; gap: 18px; }
 }
 .pass-clear-btn:hover { color: var(--txt); background: var(--bg-3); }
 
+.pass-input-wrap {
+  position: relative;
+}
+
+.pass-input-wrap .count-input {
+  padding-right: 72px; /* space for two buttons */
+}
+
+.pass-input-wrap .icon-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  color: var(--txt-3);
+  transition: color var(--fast), background var(--fast);
+}
+
+.pass-input-wrap .icon-btn:hover {
+  color: var(--txt);
+  background: var(--bg-3);
+}
+
+.pass-input-wrap .pass-toggle-btn {
+  right: 40px;
+}
+
+.pass-input-wrap .pass-gen-btn {
+  right: 8px;
+}
+
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast-container {
   position: fixed;
